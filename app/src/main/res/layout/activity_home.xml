@@ -71,6 +71,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@drawable/ic_coin"
+                            app:tint="@android:color/white"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="@string/coins"
                             android:layout_marginEnd="8dp"
@@ -82,6 +83,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@drawable/ic_notifications"
+                            app:tint="@android:color/white"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="@string/notifications"
                             android:layout_marginEnd="8dp"
@@ -93,6 +95,7 @@
                             android:layout_width="48dp"
                             android:layout_height="48dp"
                             android:src="@drawable/ic_person"
+                            app:tint="@android:color/white"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="@string/profile"
                             android:padding="8dp" />
@@ -133,6 +136,8 @@
                             android:textSize="14sp"
                             android:background="@null"
                             android:inputType="text"
+                            android:imeOptions="actionSearch"
+                            android:importantForAutofill="no"
                             android:minHeight="48dp"
                             android:padding="0dp"
                             tools:ignore="textFields"/>

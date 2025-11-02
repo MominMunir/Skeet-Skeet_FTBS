@@ -1,6 +1,7 @@
 package com.example.smd_fyp
 
 import android.os.Bundle
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -15,12 +16,14 @@ class AdminDashboardActivity : AppCompatActivity() {
     private lateinit var tvGroundsTab: TextView
     private lateinit var tvUsersTab: TextView
     private lateinit var tvAnalyticsTab: TextView
+    private lateinit var btnBack: ImageButton
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_admin_dashboard)
 
         setupTabs()
+    setupBack()
         
         // Load default fragment (Overview)
         if (savedInstanceState == null) {
@@ -71,8 +74,8 @@ class AdminDashboardActivity : AppCompatActivity() {
         tvAnalyticsTab.setTypeface(null, android.graphics.Typeface.NORMAL)
 
         // Set active tab
-        activeTab.setBackgroundResource(R.drawable.bg_tab_active_dashboard)
-        activeTab.setTextColor(getColor(R.color.green_600))
+    activeTab.setBackgroundResource(R.drawable.bg_tab_active_dashboard)
+    activeTab.setTextColor(getColor(R.color.green_600))
         activeTab.setTypeface(null, android.graphics.Typeface.BOLD)
     }
 
@@ -80,6 +83,11 @@ class AdminDashboardActivity : AppCompatActivity() {
         supportFragmentManager.beginTransaction()
             .replace(R.id.fragmentContainer, fragment)
             .commit()
+    }
+
+    private fun setupBack() {
+        btnBack = findViewById(R.id.btnBack)
+        btnBack.setOnClickListener { finish() }
     }
 }
 

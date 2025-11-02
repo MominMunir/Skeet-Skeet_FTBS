@@ -120,6 +120,10 @@
     <string name="floodlights">Floodlights</string>
     <string name="parking">Parking</string>
     <string name="natural_grass">Natural Grass</string>
+    
+    <!-- Admin Dashboard Values -->
+    <string name="admin_total_users_value">1,250</string>
+    <string name="admin_active_grounds_value">45</string>
     <string name="coins">Coins</string>
     <string name="notifications">Notifications</string>
     <string name="profile">Profile</string>

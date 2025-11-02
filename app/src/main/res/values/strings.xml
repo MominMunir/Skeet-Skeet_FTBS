@@ -125,4 +125,13 @@
     <string name="profile">Profile</string>
     <string name="menu">Menu</string>
 
+    <string name="content_desc_ground_image">Ground image</string>
+    <string name="default_rating">4.8</string>
+    <string name="sample_ground_name">Royal Football Club</string>
+    <string name="sample_ground_location">DHA Phase 5, Lahore</string>
+    <string name="sample_ground_price">Rs. 3000/hour</string>
+    <string name="amenity_floodlights">Floodlights</string>
+    <string name="amenity_parking">Parking</string>
+
+
 </resources>

@@ -112,4 +112,17 @@
     <string name="ground_gv_price">Rs. 2500/hr</string>
     <string name="rank_2">#2</string>
 
+    <!-- Home Page Strings -->
+    <string name="search_grounds_hint">Search grounds by name or location...</string>
+    <string name="filters">Filters</string>
+    <string name="featured_grounds">Featured Grounds</string>
+    <string name="per_hour">/hour</string>
+    <string name="floodlights">Floodlights</string>
+    <string name="parking">Parking</string>
+    <string name="natural_grass">Natural Grass</string>
+    <string name="coins">Coins</string>
+    <string name="notifications">Notifications</string>
+    <string name="profile">Profile</string>
+    <string name="menu">Menu</string>
+
 </resources>

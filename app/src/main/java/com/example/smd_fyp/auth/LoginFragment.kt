@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.example.smd_fyp.AdminDashboardActivity
+import com.example.smd_fyp.HomeActivity
 import com.example.smd_fyp.R
 
 class LoginFragment : Fragment() {
@@ -29,16 +30,25 @@ class LoginFragment : Fragment() {
             findNavController().navigateUp()
         }
 
-        // Sign In -> If role is Admin, go to Admin Dashboard
+        // Sign In -> If role is Admin, go to Admin Dashboard; if Player, go to Home
         val spinner = view.findViewById<Spinner>(R.id.spinnerLoginAs)
         view.findViewById<View>(R.id.btnSignIn)?.setOnClickListener {
             val selected = spinner?.selectedItem?.toString()?.trim() ?: ""
             val adminLabel = getString(R.string.admin)
-            if (selected.equals(adminLabel, ignoreCase = true)) {
-                startActivity(Intent(requireContext(), AdminDashboardActivity::class.java))
-                requireActivity().finish()
-            } else {
-                Toast.makeText(requireContext(), "Only Admin flow is wired for now", Toast.LENGTH_SHORT).show()
+            val playerLabel = getString(R.string.player)
+            
+            when {
+                selected.equals(adminLabel, ignoreCase = true) -> {
+                    startActivity(Intent(requireContext(), AdminDashboardActivity::class.java))
+                    requireActivity().finish()
+                }
+                selected.equals(playerLabel, ignoreCase = true) -> {
+                    startActivity(Intent(requireContext(), HomeActivity::class.java))
+                    requireActivity().finish()
+                }
+                else -> {
+                    Toast.makeText(requireContext(), "Only Admin and Player flows are wired", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

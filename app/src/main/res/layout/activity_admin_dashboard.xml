@@ -13,7 +13,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="20dp"
+        android:paddingStart="0dp"
+        android:paddingEnd="20dp"
         android:background="@drawable/bg_app_gradient">
 
         <!-- Header with Back Button and Title -->
@@ -22,15 +25,18 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="12dp">
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="24dp">
 
             <ImageButton
                 android:id="@+id/btnBack"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="12dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_arrow_back_white"
-                android:contentDescription="@string/back" />
+                android:contentDescription="@string/back"
+                android:scaleType="fitCenter" />
 
             <TextView
                 android:id="@+id/tvDashboardTitle"
@@ -39,9 +45,11 @@
                 android:layout_weight="1"
                 android:text="@string/admin_dashboard"
                 android:textColor="@android:color/white"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textStyle="bold"
-                android:layout_marginStart="8dp" />
+                android:layout_marginStart="4dp"
+                android:paddingStart="12dp"
+                android:gravity="center_vertical" />
         </LinearLayout>
 
         <!-- Key Metrics Cards -->
@@ -50,7 +58,9 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:weightSum="2">
+            android:weightSum="2"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
 
             <!-- Total Users Card -->
             <androidx.cardview.widget.CardView
@@ -79,7 +89,7 @@
                             android:layout_width="32dp"
                             android:layout_height="32dp"
                             android:src="@drawable/ic_users"
-                            android:tint="@color/blue_600"
+                            app:tint="@color/blue_600"
                             android:contentDescription="@string/total_users" />
 
                         <TextView
@@ -131,7 +141,7 @@
                             android:layout_width="32dp"
                             android:layout_height="32dp"
                             android:src="@drawable/ic_building"
-                            android:tint="@color/green_600"
+                            app:tint="@color/green_600"
                             android:contentDescription="@string/active_grounds" />
 
                         <TextView
@@ -181,7 +191,9 @@
             <TextView
                 android:id="@+id/tvOverviewTab"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="48dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_tab_active_dashboard"
                 android:text="@string/overview"
@@ -195,7 +207,9 @@
             <TextView
                 android:id="@+id/tvGroundsTab"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="48dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_tab_inactive_dashboard"
                 android:text="@string/grounds"
@@ -208,7 +222,9 @@
             <TextView
                 android:id="@+id/tvUsersTab"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="48dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_tab_inactive_dashboard"
                 android:text="@string/users"
@@ -221,7 +237,9 @@
             <TextView
                 android:id="@+id/tvAnalyticsTab"
                 android:layout_width="0dp"
-                android:layout_height="40dp"
+                android:layout_height="48dp"
+                android:minHeight="48dp"
+                android:minWidth="48dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_tab_inactive_dashboard"
                 android:text="@string/analytics"

@@ -1,0 +1,29 @@
+package com.example.smd_fyp
+
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import com.example.smd_fyp.auth.AuthActivity
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_splash)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
+
+        // Navigate to AuthActivity when user taps Get Started
+        findViewById<android.view.View>(R.id.btnGetStarted)?.setOnClickListener {
+            startActivity(Intent(this, AuthActivity::class.java))
+            // Optional: finish splash so Back won’t return here
+            finish()
+        }
+    }
+}

@@ -1,0 +1,115 @@
+<resources>
+    <!-- Splash Screen Strings -->
+    <string name="app_name">Skeet Skeet</string>
+    <string name="welcome_message">Book your perfect football ground</string>
+    <string name="get_started">Get Started</string>
+
+    <!-- Login/Signup Screen Strings -->
+    <string name="back">Back</string>
+    <string name="welcome_to_skeetskeet">Welcome to SkeetSkeet</string>
+    <string name="tagline">Your football ground booking companion</string>
+    <string name="login">Login</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="full_name">Full Name</string>
+    <string name="email_hint">ahmed@example.com</string>
+    <string name="password_hint">Enter your password</string>
+    <string name="create_password_hint">Create a password</string>
+    <string name="full_name_hint">Ahmed Khan</string>
+    <string name="login_as">Login as</string>
+    <string name="register_as">Register as</string>
+    <string name="player">Player</string>
+    <string name="groundkeeper">Groundkeeper</string>
+    <string name="admin">Admin</string>
+    <string name="sign_in">Sign In</string>
+    <string name="create_account">Create Account</string>
+    <string name="forgot_password">Forgot Password?</string>
+    
+    <!-- Forgot Password Screen Strings -->
+    <string name="reset_password">Reset Password</string>
+    <string name="forgot_password_title">Forgot Password</string>
+    <string name="forgot_password_description">Enter your email address and we\'ll send you instructions to reset your password.</string>
+    <string name="send_reset_link">Send Reset Link</string>
+    <string name="remember_password">Remember your password?</string>
+    
+    <!-- Admin Dashboard Strings -->
+    <string name="admin_dashboard">Admin Dashboard</string>
+    <string name="total_users">Total Users</string>
+    <string name="active_grounds">Active Grounds</string>
+    <string name="revenue_overview">Revenue Overview</string>
+    <string name="total_revenue_this_month">Total Revenue This Month</string>
+    <string name="vs_last_month">vs last month</string>
+    <string name="booking_statistics">Booking Statistics</string>
+    <string name="confirmed">Confirmed</string>
+    <string name="pending">Pending</string>
+    <string name="cancelled">Cancelled</string>
+    <string name="quick_actions">Quick Actions</string>
+    <string name="add_new_ground">Add New Ground</string>
+    <string name="view_reports">View Reports</string>
+    <string name="manage_users">Manage Users</string>
+    <string name="system_settings">System Settings</string>
+    <string name="overview">Overview</string>
+    <string name="grounds">Grounds</string>
+    <string name="users">Users</string>
+    <string name="analytics">Analytics</string>
+    <string name="revenue_overview_with_dollar">$ Revenue Overview</string>
+    <string name="successful_bookings">Successful Bookings</string>
+    <string name="one_confirmed">1 Confirmed</string>
+    <string name="one_pending">1 Pending</string>
+    <string name="zero_cancelled">0 Cancelled</string>
+
+    <!-- Admin Analytics / Reports Strings -->
+    <string name="analytics_reports">Analytics &amp; Reports</string>
+    <string name="total_bookings">Total Bookings</string>
+    <string name="total_bookings_value">1,234</string>
+    <string name="avg_revenue_per_day">Avg. Revenue/Day</string>
+    <string name="avg_revenue_value">Rs. 45,000</string>
+    <string name="generate_reports">Generate Reports</string>
+    <string name="monthly_report">Monthly Report</string>
+    <string name="yearly_report">Yearly Report</string>
+
+    <!-- Admin Analytics (New Layout) -->
+    <string name="platform_analytics">Platform Analytics</string>
+    <string name="booking_success_rate">Booking Success Rate</string>
+    <string name="average_rating">Average Rating</string>
+    <string name="ground_utilization">Ground Utilization</string>
+    <string name="avg_booking_time">Avg Booking Time</string>
+    <string name="val_89_percent">89%</string>
+    <string name="val_4_6">4.6</string>
+    <string name="val_72_percent">72%</string>
+    <string name="val_15_min">15min</string>
+    <string name="monthly_trends">Monthly Trends</string>
+    <string name="bookings_growth">Bookings Growth</string>
+    <string name="user_acquisition">User Acquisition</string>
+    <string name="revenue_growth">Revenue Growth</string>
+    <string name="val_plus_12">+12%</string>
+    <string name="val_plus_8">+8%</string>
+    <string name="val_plus_15">+15%</string>
+
+    <!-- Grounds Performance -->
+    <string name="ground_performance">Ground Performance</string>
+    <string name="two_grounds">2 grounds</string>
+    <string name="bookings">Bookings</string>
+    <string name="revenue">Revenue</string>
+    <string name="price">Price</string>
+
+    <!-- Ground #1 (Royal Club) -->
+    <string name="ground_rc_name">Royal Football Club</string>
+    <string name="ground_rc_location">DHA Phase 5, Lahore</string>
+    <string name="ground_rc_rating">4.8</string>
+    <string name="ground_rc_bookings">45</string>
+    <string name="ground_rc_revenue">Rs. 143,549</string>
+    <string name="ground_rc_price">Rs. 3000/hr</string>
+    <string name="rank_1">#1</string>
+
+    <!-- Ground #2 (Green Valley) -->
+    <string name="ground_gv_name">Green Valley Sports</string>
+    <string name="ground_gv_location">Johar Town, Lahore</string>
+    <string name="ground_gv_rating">4.5</string>
+    <string name="ground_gv_bookings">47</string>
+    <string name="ground_gv_revenue">Rs. 114,751</string>
+    <string name="ground_gv_price">Rs. 2500/hr</string>
+    <string name="rank_2">#2</string>
+
+</resources>

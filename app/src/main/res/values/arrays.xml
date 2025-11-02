@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- User Role Dropdown Items -->
+    <string-array name="user_roles">
+        <item>@string/player</item>
+        <item>@string/groundkeeper</item>
+        <item>@string/admin</item>
+    </string-array>
+</resources>
+

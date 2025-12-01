@@ -173,6 +173,81 @@
                         android:textColor="@color/text_primary"
                         android:textSize="14sp" />
                 </LinearLayout>
+
+                <!-- Filter Options (Hidden by default) -->
+                <LinearLayout
+                    android:id="@+id/llFilterOptions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:visibility="gone"
+                    android:layout_marginTop="12dp">
+
+                    <!-- All Locations Dropdown -->
+                    <LinearLayout
+                        android:id="@+id/llLocationFilter"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_dropdown"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginEnd="8dp">
+
+                        <TextView
+                            android:id="@+id/tvLocationFilter"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/all_locations"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@android:drawable/arrow_down_float"
+                            app:tint="@color/text_primary"
+                            android:contentDescription="@null" />
+                    </LinearLayout>
+
+                    <!-- All Prices Dropdown -->
+                    <LinearLayout
+                        android:id="@+id/llPriceFilter"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_dropdown"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginStart="8dp">
+
+                        <TextView
+                            android:id="@+id/tvPriceFilter"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/all_prices"
+                            android:textColor="@color/text_primary"
+                            android:textSize="14sp" />
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:src="@android:drawable/arrow_down_float"
+                            app:tint="@color/text_primary"
+                            android:contentDescription="@null" />
+                    </LinearLayout>
+                </LinearLayout>
             </LinearLayout>
 
             <!-- Featured Grounds Section -->

@@ -365,7 +365,7 @@
                 android:textColor="@color/white"
                 android:textStyle="bold"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:backgroundTint="@color/btn_green"
+                android:backgroundTint="@color/green_600"
                 android:layout_marginStart="8dp"
                 />
         </LinearLayout>

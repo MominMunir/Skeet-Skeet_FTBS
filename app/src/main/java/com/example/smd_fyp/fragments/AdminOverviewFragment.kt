@@ -20,6 +20,23 @@ class AdminOverviewFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // Initialize views and set up click listeners here
+        view.findViewById<View>(R.id.btnSystemSettings)?.setOnClickListener {
+            // Load AdminSettingsFragment using FragmentManager
+            val settingsFragment = AdminSettingsFragment()
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, settingsFragment)
+                .addToBackStack(null)
+                .commit()
+        }
+
+        view.findViewById<View>(R.id.btnAddNewGround)?.setOnClickListener {
+            // Load AdminAddGroundFragment using FragmentManager
+            val addGroundFragment = AdminAddGroundFragment()
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, addGroundFragment)
+                .addToBackStack(null)
+                .commit()
+        }
     }
 }
 

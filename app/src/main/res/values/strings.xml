@@ -13,10 +13,10 @@
     <string name="email">Email</string>
     <string name="password">Password</string>
     <string name="full_name">Full Name</string>
-    <string name="email_hint">ahmed@example.com</string>
+    <string name="email_hint">abdullah@example.com</string>
     <string name="password_hint">Enter your password</string>
     <string name="create_password_hint">Create a password</string>
-    <string name="full_name_hint">Ahmed Khan</string>
+    <string name="full_name_hint">Abdullah Azeem</string>
     <string name="login_as">Login as</string>
     <string name="register_as">Register as</string>
     <string name="player">Player</string>
@@ -25,14 +25,14 @@
     <string name="sign_in">Sign In</string>
     <string name="create_account">Create Account</string>
     <string name="forgot_password">Forgot Password?</string>
-    
+
     <!-- Forgot Password Screen Strings -->
     <string name="reset_password">Reset Password</string>
     <string name="forgot_password_title">Forgot Password</string>
     <string name="forgot_password_description">Enter your email address and we\'ll send you instructions to reset your password.</string>
     <string name="send_reset_link">Send Reset Link</string>
     <string name="remember_password">Remember your password?</string>
-    
+
     <!-- Admin Dashboard Strings -->
     <string name="admin_dashboard">Admin Dashboard</string>
     <string name="total_users">Total Users</string>
@@ -120,7 +120,7 @@
     <string name="floodlights">Floodlights</string>
     <string name="parking">Parking</string>
     <string name="natural_grass">Natural Grass</string>
-    
+
     <!-- Admin Dashboard Values -->
     <string name="admin_total_users_value">1,250</string>
     <string name="admin_active_grounds_value">45</string>
@@ -136,6 +136,29 @@
     <string name="sample_ground_price">Rs. 3000/hour</string>
     <string name="amenity_floodlights">Floodlights</string>
     <string name="amenity_parking">Parking</string>
+
+    <!-- Add Ground Strings -->
+    <string name="ground_info">Ground Information</string>
+    <string name="add_new_ground_title">Add New Ground</string>
+    <string name="ground_name">Ground Name</string>
+    <string name="ground_location">Location</string>
+    <string name="ground_price_per_hour">Price per Hour</string>
+    <string name="ground_price_per_hour_hint">Enter price (Rs.)</string>
+    <string name="ground_amenities">Amenities</string>
+    <string name="add_ground">Add Ground</string>
+    <string name="ground_name_hint">Enter ground name</string>
+    <string name="ground_location_hint">Enter ground location</string>
+    <string name="ground_price_hint">Enter price per hour</string>
+    <string name="description_optional">Description (Optional) </string>
+    <string name="description_hint">Enter ground description</string>
+    <string name="flood_lights">Floodlights</string>
+    <string name="parking_facility">Parking Available</string>
+    <string name="ground_img">Ground Image</string>
+    <string name="ground_img_contentDes">Ground image preview</string>
+    <string name="upload_image_contentDes">Upload Image</string>
+    <string name="upload_image">Tap to upload image</string>
+    <string name="cancel">Cancel</string>
+
 
 
 </resources>

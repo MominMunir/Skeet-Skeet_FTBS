@@ -1,5 +1,6 @@
 package com.example.smd_fyp.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,6 +8,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.appcompat.widget.SwitchCompat
 import com.example.smd_fyp.R
+import com.example.smd_fyp.auth.AuthActivity
 
 class AdminSettingsFragment : Fragment() {
 
@@ -40,10 +42,12 @@ class AdminSettingsFragment : Fragment() {
         view.findViewById<View>(R.id.btnChangePassword)?.setOnClickListener {
             // Handle change password
         }
-        
+
         view.findViewById<View>(R.id.btnLogout)?.setOnClickListener {
             // Handle logout
+            startActivity(Intent(requireContext(), AuthActivity::class.java))
+            requireActivity().finish()
         }
-    }
+        }
 }
 

@@ -21,4 +21,28 @@
             android:id="@+id/action_signup_to_login"
             app:destination="@id/loginFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/overViewFragment"
+        android:name="com.example.smd_fyp.fragments.AdminOverviewFragment"
+        android:label="overview" >
+        <action
+            android:id="@+id/action_overViewFragment_to_adminSettingsFragment"
+            app:destination="@id/adminSettingsFragment" />
+    </fragment>
+    <action
+        android:id="@+id/action_adminOverview_to_systemSettings"
+        app:destination="@+id/adminSettingsFragment" />
+
+    <fragment
+        android:id="@+id/adminSettingsFragment"
+        android:name="com.example.smd_fyp.fragments.AdminSettingsFragment"
+        android:label="system_settings" >
+        <action
+            android:id="@+id/action_adminSettingsFragment_to_overViewFragment"
+            app:destination="@id/overViewFragment" />
+    </fragment>
+    <action
+        android:id="@+id/action_systemSettings_to_adminOverview"
+        app:destination="@+id/overViewFragment" />
 </navigation>

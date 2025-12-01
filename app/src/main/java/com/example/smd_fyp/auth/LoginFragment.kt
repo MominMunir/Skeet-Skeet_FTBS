@@ -13,6 +13,7 @@ import androidx.navigation.fragment.findNavController
 import com.example.smd_fyp.AdminDashboardActivity
 import com.example.smd_fyp.HomeActivity
 import com.example.smd_fyp.R
+import com.example.smd_fyp.auth.ResetPasswordActivity
 
 class LoginFragment : Fragment() {
     override fun onCreateView(
@@ -28,6 +29,9 @@ class LoginFragment : Fragment() {
         // Back
         view.findViewById<View>(R.id.llBack)?.setOnClickListener {
             findNavController().navigateUp()
+        }
+        view.findViewById<TextView>(R.id.tvForgotPassword)?.setOnClickListener {
+            launchForgotPassword()
         }
 
         // Sign In -> If role is Admin, go to Admin Dashboard; if Player, go to Home
@@ -51,5 +55,8 @@ class LoginFragment : Fragment() {
                 }
             }
         }
+    }
+    private fun launchForgotPassword() {
+       startActivity(Intent(requireContext(), ResetPasswordActivity::class.java))
     }
 }

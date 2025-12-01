@@ -37,6 +37,7 @@ class AdminDashboardActivity : AppCompatActivity() {
         tvUsersTab = findViewById(R.id.tvUsersTab)
         tvAnalyticsTab = findViewById(R.id.tvAnalyticsTab)
 
+
         tvOverviewTab.setOnClickListener { switchToFragment(AdminOverviewFragment(), tvOverviewTab) }
         tvGroundsTab.setOnClickListener { switchToFragment(AdminGroundsFragment(), tvGroundsTab) }
         tvUsersTab.setOnClickListener { switchToFragment(AdminUsersFragment(), tvUsersTab) }

@@ -38,7 +38,7 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:src="@drawable/ic_dollar"
-                        android:tint="@color/text_primary"
+                        app:tint="@color/text_primary"
                         android:contentDescription="@string/revenue_overview"
                         android:layout_marginEnd="4dp" />
 
@@ -85,7 +85,7 @@
                         android:layout_width="18dp"
                         android:layout_height="18dp"
                         android:src="@drawable/ic_trending_up"
-                        android:tint="@color/green_600"
+                        app:tint="@color/green_600"
                         android:contentDescription="@string/vs_last_month" />
 
                     <TextView

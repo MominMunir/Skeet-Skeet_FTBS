@@ -2,13 +2,16 @@ package com.example.smd_fyp.auth
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.smd_fyp.R
-import com.example.smd_fyp.auth.LoginFragment
+import com.google.android.material.textfield.TextInputEditText
 
 class ResetPasswordActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,15 +24,17 @@ class ResetPasswordActivity : AppCompatActivity() {
             insets
         }
 
-        findViewById<TextView>(R.id.llBack)?.setOnClickListener {
+        findViewById<LinearLayout>(R.id.llBack)?.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
-         }
-
-        findViewById<TextView>(R.id.tvRememberPassword).setOnClickListener {
-           startActivity(Intent(this, LoginFragment::class.java))
         }
 
-        val email = findViewById<TextView>(R.id.etEmail)
-        findViewById<TextView>(R.id.btnSendResetLink).setOnClickListener {}
+        findViewById<TextView>(R.id.tvRememberPassword).setOnClickListener {
+            startActivity(Intent(this, AuthActivity::class.java))
+        }
+
+        val email = findViewById<TextInputEditText>(R.id.etEmail)
+        findViewById<Button>(R.id.btnSendResetLink).setOnClickListener {
+            // TODO: Implement send reset link functionality
+        }
     }
 }

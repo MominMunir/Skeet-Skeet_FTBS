@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/menuHome"
+            android:icon="@drawable/ic_menu"
+            android:title="@string/home" />
+
+        <item
+            android:id="@+id/menuMyBookings"
+            android:icon="@drawable/ic_notifications"
+            android:title="@string/my_bookings" />
+
+        <item
+            android:id="@+id/menuFavorites"
+            android:icon="@drawable/ic_coin"
+            android:title="@string/favorites" />
+    </group>
+
+    <group>
+        <item
+            android:id="@+id/menuSettings"
+            android:icon="@drawable/ic_notifications"
+            android:title="@string/system_settings" />
+
+        <item
+            android:id="@+id/menuHelp"
+            android:icon="@drawable/ic_notifications"
+            android:title="@string/help_support" />
+    </group>
+
+    <group>
+        <item
+            android:id="@+id/menuLogout"
+            android:icon="@drawable/ic_notifications"
+            android:title="@string/logout" />
+    </group>
+</menu>
+

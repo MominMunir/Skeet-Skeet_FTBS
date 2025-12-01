@@ -120,6 +120,13 @@
     <string name="featured_grounds">Featured Grounds</string>
     <string name="per_hour">/hour</string>
     <string name="floodlights">Floodlights</string>
+    <string name="no_notifications">No notifications</string>
+    <string name="mark_all_as_read">Mark All as Read</string>
+    <string name="home">Home</string>
+    <string name="my_bookings">My Bookings</string>
+    <string name="favorites">Favorites</string>
+    <string name="help_support">Help &amp; Support</string>
+    <string name="logout">Logout</string>
     <string name="parking">Parking</string>
     <string name="natural_grass">Natural Grass</string>
 
@@ -161,6 +168,21 @@
     <string name="upload_image">Tap to upload image</string>
     <string name="cancel">Cancel</string>
 
-
+    <!-- User Profile Strings -->
+    <string name="user_profile">User Profile</string>
+    <string name="profile_picture">Profile Picture</string>
+    <string name="change_photo">Change Photo</string>
+    <string name="username">Username</string>
+    <string name="username_hint">Enter username</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="phone_number_hint">Enter phone number</string>
+    <string name="age">Age</string>
+    <string name="age_hint">Enter age</string>
+    <string name="gender">Gender</string>
+    <string name="select_gender">Select Gender</string>
+    <string name="location">Location</string>
+    <string name="location_hint">Enter your location</string>
+    <string name="change_password">Change Password</string>
+    <string name="save_profile">Save Profile</string>
 
 </resources>

@@ -35,6 +35,12 @@
         <activity
             android:name=".UserProfileActivity"
             android:exported="false" />
+        <activity
+            android:name=".MyBookingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".GroundkeeperDashboardActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

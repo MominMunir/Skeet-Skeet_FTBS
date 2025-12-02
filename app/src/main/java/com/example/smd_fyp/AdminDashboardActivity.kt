@@ -87,8 +87,10 @@ class AdminDashboardActivity : AppCompatActivity() {
     }
 
     private fun setupBack() {
-        btnBack = findViewById(R.id.btnBack)
-        btnBack.setOnClickListener { finish() }
+        btnBack = findViewById(R.id.llBack)
+        btnBack.setOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
     }
 }
 

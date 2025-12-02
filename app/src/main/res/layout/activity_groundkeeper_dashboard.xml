@@ -2,7 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/adminDashboardRoot"
+    android:id="@+id/groundkeeperDashboardRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_app_gradient">
@@ -22,7 +22,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-
         <!-- Header with Back Button and Title -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -38,44 +37,44 @@
                 android:layout_height="wrap_content"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:padding="12dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginStart="8dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:clickable="true"
                 android:focusable="true"
-                android:background="?attr/selectableItemBackgroundBorderless">
+                android:background="?attr/selectableItemBackground"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
                     android:src="@android:drawable/ic_menu_revert"
-                    app:tint="@android:color/white"
+                    app:tint="@color/text_primary"
                     android:contentDescription="@string/back" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/back"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:layout_marginStart="8dp" />
             </LinearLayout>
-
 
             <TextView
                 android:id="@+id/tvDashboardTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/admin_dashboard"
-                android:textColor="?attr/colorOnPrimary"
+                android:text="Groundkeeper Dashboard"
+                android:textColor="@android:color/white"
                 android:textSize="22sp"
                 android:textStyle="bold"
                 android:layout_marginStart="4dp"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp"
-                android:paddingLeft="12dp"
-                android:paddingRight="12dp"
                 android:gravity="center_vertical" />
         </LinearLayout>
 
@@ -89,108 +88,94 @@
             android:paddingStart="16dp"
             android:paddingEnd="16dp">
 
-            <!-- Total Users Card -->
+            <!-- Today's Bookings Card -->
             <androidx.cardview.widget.CardView
-                android:id="@+id/cardTotalUsers"
+                android:id="@+id/cardTodaysBookings"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_margin="6dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/white">
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card_users">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="16dp">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@android:drawable/ic_menu_today"
+                        app:tint="@color/green_600"
+                        android:contentDescription="Calendar icon"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/tvTodaysBookings"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:padding="16dp">
+                        android:text="0"
+                        android:textSize="28sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
 
-                        <ImageView
-                            android:id="@+id/ivUsers"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:src="@drawable/ic_users"
-                            app:tint="@color/blue_600"
-                            android:contentDescription="@string/total_users" />
-
-                        <TextView
-                            android:id="@+id/tvTotalUsers"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/admin_total_users_value"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary"
-                            android:layout_marginTop="8dp" />
-
-                        <TextView
-                            android:id="@+id/tvTotalUsersLabel"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/total_users"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_primary"
-                            android:layout_marginTop="4dp" />
-                    </LinearLayout>
-                </RelativeLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Today's Bookings"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary" />
+                </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- Active Grounds Card -->
+            <!-- Monthly Revenue Card -->
             <androidx.cardview.widget.CardView
-                android:id="@+id/cardActiveGrounds"
+                android:id="@+id/cardMonthlyRevenue"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_margin="6dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="4dp">
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/white">
 
-                <RelativeLayout
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/bg_card_grounds">
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="16dp">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:src="@drawable/ic_dollar"
+                        app:tint="@color/blue_600"
+                        android:contentDescription="Dollar icon"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:id="@+id/tvMonthlyRevenue"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:gravity="center"
-                        android:padding="16dp">
+                        android:text="Rs. 135,000"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
 
-                        <ImageView
-                            android:id="@+id/ivGrounds"
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
-                            android:src="@drawable/ic_building"
-                            app:tint="@color/green_600"
-                            android:contentDescription="@string/active_grounds" />
-
-                        <TextView
-                            android:id="@+id/tvActiveGrounds"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/admin_active_grounds_value"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary"
-                            android:layout_marginTop="8dp" />
-
-                        <TextView
-                            android:id="@+id/tvActiveGroundsLabel"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/active_grounds"
-                            android:textSize="12sp"
-                            android:textColor="@color/text_primary"
-                            android:layout_marginTop="4dp" />
-                    </LinearLayout>
-                </RelativeLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Monthly Revenue"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary" />
+                </LinearLayout>
             </androidx.cardview.widget.CardView>
         </LinearLayout>
     </LinearLayout>
@@ -218,7 +203,7 @@
             android:minWidth="48dp"
             android:layout_weight="1"
             android:background="@drawable/bg_tab_active_dashboard"
-            android:text="@string/overview"
+            android:text="Overview"
             android:textColor="@color/green_600"
             android:textSize="14sp"
             android:textStyle="bold"
@@ -227,14 +212,14 @@
             android:focusable="true" />
 
         <TextView
-            android:id="@+id/tvGroundsTab"
+            android:id="@+id/tvMyGroundsTab"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:minHeight="48dp"
             android:minWidth="48dp"
             android:layout_weight="1"
             android:background="@drawable/bg_tab_inactive_dashboard"
-            android:text="@string/grounds"
+            android:text="My Grounds"
             android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:gravity="center"
@@ -242,14 +227,14 @@
             android:focusable="true" />
 
         <TextView
-            android:id="@+id/tvUsersTab"
+            android:id="@+id/tvBookingsTab"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:minHeight="48dp"
             android:minWidth="48dp"
             android:layout_weight="1"
             android:background="@drawable/bg_tab_inactive_dashboard"
-            android:text="@string/users"
+            android:text="Bookings"
             android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:gravity="center"
@@ -257,14 +242,14 @@
             android:focusable="true" />
 
         <TextView
-            android:id="@+id/tvAnalyticsTab"
+            android:id="@+id/tvSettingsTab"
             android:layout_width="0dp"
             android:layout_height="48dp"
             android:minHeight="48dp"
             android:minWidth="48dp"
             android:layout_weight="1"
             android:background="@drawable/bg_tab_inactive_dashboard"
-            android:text="@string/analytics"
+            android:text="Settings"
             android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:gravity="center"
@@ -283,6 +268,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        tools:layout="@layout/fragment_admin_overview" />
+        tools:layout="@layout/fragment_groundkeeper_overview" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+

@@ -1,4 +1,4 @@
-package com.example.smd_fyp
+package com.example.smd_fyp.player
 
 import android.os.Bundle
 import android.view.View
@@ -16,10 +16,11 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.FragmentContainerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.smd_fyp.R
 import com.example.smd_fyp.auth.AuthActivity
-import com.example.smd_fyp.fragments.NotificationsFragment
-import com.example.smd_fyp.home.GroundAdapter
 import com.example.smd_fyp.model.Ground
+import com.example.smd_fyp.player.fragments.NotificationsFragment
+import com.example.smd_fyp.player.adapter.GroundAdapter
 
 class HomeActivity : AppCompatActivity() {
     
@@ -259,3 +260,5 @@ class HomeActivity : AppCompatActivity() {
         })
     }
 }
+
+

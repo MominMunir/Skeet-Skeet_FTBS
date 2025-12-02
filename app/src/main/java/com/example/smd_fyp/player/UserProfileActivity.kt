@@ -1,4 +1,4 @@
-package com.example.smd_fyp
+package com.example.smd_fyp.player
 
 import android.content.ContentValues
 import android.content.Intent
@@ -22,9 +22,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
-import com.example.smd_fyp.fragments.BookingsFragment
-import com.example.smd_fyp.fragments.FavoritesFragment
-import com.example.smd_fyp.fragments.SettingsFragment
+import com.example.smd_fyp.R
+import com.example.smd_fyp.player.fragments.BookingsFragment
+import com.example.smd_fyp.player.fragments.FavoritesFragment
+import com.example.smd_fyp.player.fragments.SettingsFragment
 import com.google.android.material.textfield.TextInputEditText
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
@@ -289,3 +290,5 @@ class UserProfileActivity : AppCompatActivity() {
         }
     }
 }
+
+

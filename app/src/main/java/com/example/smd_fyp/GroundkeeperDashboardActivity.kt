@@ -1,7 +1,7 @@
 package com.example.smd_fyp
 
 import android.os.Bundle
-import android.widget.ImageButton
+import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -16,7 +16,7 @@ class GroundkeeperDashboardActivity : AppCompatActivity() {
     private lateinit var tvMyGroundsTab: TextView
     private lateinit var tvBookingsTab: TextView
     private lateinit var tvSettingsTab: TextView
-    private lateinit var btnBack: ImageButton
+    private lateinit var btnBack: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -86,8 +86,8 @@ class GroundkeeperDashboardActivity : AppCompatActivity() {
     }
 
     private fun setupBack() {
-        btnBack = findViewById(R.id.btnBack)
-        btnBack?.setOnClickListener {
+        btnBack = findViewById(R.id.llBack)
+        btnBack.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
     }

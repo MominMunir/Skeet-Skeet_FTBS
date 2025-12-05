@@ -1,7 +1,7 @@
 package com.example.smd_fyp
 
 import android.os.Bundle
-import android.widget.ImageButton
+import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -16,7 +16,7 @@ class AdminDashboardActivity : AppCompatActivity() {
     private lateinit var tvGroundsTab: TextView
     private lateinit var tvUsersTab: TextView
     private lateinit var tvAnalyticsTab: TextView
-    private lateinit var btnBack: ImageButton
+    private lateinit var btnBack: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

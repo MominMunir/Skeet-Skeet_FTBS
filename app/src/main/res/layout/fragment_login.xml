@@ -230,33 +230,6 @@
                     android:padding="16dp" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Login As Dropdown -->
-            <TextView
-                android:id="@+id/lblLoginAs"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/login_as"
-                android:textColor="@color/text_primary"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginTop="16dp"
-                app:layout_constraintTop_toBottomOf="@id/tilPassword"
-                app:layout_constraintStart_toStartOf="parent" />
-
-            <Spinner
-                android:id="@+id/spinnerLoginAs"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:background="@drawable/bg_dropdown"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:layout_marginTop="8dp"
-                android:spinnerMode="dropdown"
-                android:entries="@array/user_roles"
-                app:layout_constraintTop_toBottomOf="@id/lblLoginAs"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-
             <!-- Sign In Button -->
             <Button
                 android:id="@+id/btnSignIn"
@@ -269,7 +242,7 @@
                 android:backgroundTint="@color/green_600"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                 android:layout_marginTop="24dp"
-                app:layout_constraintTop_toBottomOf="@id/spinnerLoginAs"
+                app:layout_constraintTop_toBottomOf="@id/tilPassword"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 

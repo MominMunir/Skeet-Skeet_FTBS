@@ -5,16 +5,25 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.example.smd_fyp.AdminDashboardActivity
 import com.example.smd_fyp.GroundkeeperDashboardActivity
 import com.example.smd_fyp.HomeActivity
 import com.example.smd_fyp.R
 import com.example.smd_fyp.auth.ResetPasswordActivity
+import com.example.smd_fyp.database.LocalDatabaseHelper
+import com.example.smd_fyp.firebase.FirebaseAuthHelper
+import com.example.smd_fyp.model.User
+import com.example.smd_fyp.model.UserRole
+import com.example.smd_fyp.sync.SyncManager
+import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LoginFragment : Fragment() {
     override fun onCreateView(
@@ -35,30 +44,120 @@ class LoginFragment : Fragment() {
             launchForgotPassword()
         }
 
-        // Sign In -> Navigate based on role: Admin -> AdminDashboard, Groundkeeper -> GroundkeeperDashboard, Player -> Home
-        val spinner = view.findViewById<Spinner>(R.id.spinnerLoginAs)
+        // Sign In -> Navigate based on user's stored role
+        val etEmail = view.findViewById<TextInputEditText>(R.id.etEmail)
+        val etPassword = view.findViewById<TextInputEditText>(R.id.etPassword)
+        
         view.findViewById<View>(R.id.btnSignIn)?.setOnClickListener {
-            val selected = spinner?.selectedItem?.toString()?.trim() ?: ""
-            val adminLabel = getString(R.string.admin)
-            val playerLabel = getString(R.string.player)
-            val groundkeeperLabel = getString(R.string.groundkeeper)
+            val email = etEmail?.text?.toString()?.trim() ?: ""
+            val password = etPassword?.text?.toString() ?: ""
             
-            when {
-                selected.equals(adminLabel, ignoreCase = true) -> {
-                    startActivity(Intent(requireContext(), AdminDashboardActivity::class.java))
-                    requireActivity().finish()
-                }
-                selected.equals(groundkeeperLabel, ignoreCase = true) -> {
-                    startActivity(Intent(requireContext(), GroundkeeperDashboardActivity::class.java))
-                    requireActivity().finish()
-                }
-                selected.equals(playerLabel, ignoreCase = true) -> {
-                    startActivity(Intent(requireContext(), HomeActivity::class.java))
-                    requireActivity().finish()
-                }
-                else -> {
-                    Toast.makeText(requireContext(), "Please select a valid role", Toast.LENGTH_SHORT).show()
-                }
+            // Validate inputs
+            if (email.isEmpty()) {
+                Toast.makeText(requireContext(), "Please enter your email", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (password.isEmpty()) {
+                Toast.makeText(requireContext(), "Please enter your password", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            
+            // Show loading (you can add a progress bar here)
+            view.findViewById<View>(R.id.btnSignIn)?.isEnabled = false
+            
+            // Sign in with Firebase
+            lifecycleScope.launch {
+                val result = FirebaseAuthHelper.signInWithEmailPassword(email, password)
+                result.fold(
+                    onSuccess = { firebaseUser ->
+                        try {
+                            // Successfully signed in
+                            // Initialize database
+                            LocalDatabaseHelper.initialize(requireContext())
+                            
+                            // Get user from local database or fetch from PHP API
+                            var user = withContext(Dispatchers.IO) {
+                                LocalDatabaseHelper.getUser(firebaseUser.uid)
+                            }
+                            
+                            // If user not in local DB, try to fetch from PHP API
+                            if (user == null) {
+                                try {
+                                    val apiService = com.example.smd_fyp.api.ApiClient.getPhpApiService(requireContext())
+                                    val response = apiService.getUser(firebaseUser.uid)
+                                    if (response.isSuccessful && response.body() != null) {
+                                        user = response.body()
+                                        // Save to local database
+                                        user?.let { LocalDatabaseHelper.saveUser(it) }
+                                    }
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                            
+                            // If still no user found, create a default one (shouldn't happen if registration worked)
+                            if (user == null) {
+                                user = User(
+                                    id = firebaseUser.uid,
+                                    email = firebaseUser.email ?: email,
+                                    fullName = firebaseUser.displayName ?: "",
+                                    role = UserRole.PLAYER, // Default to PLAYER if not found
+                                    createdAt = System.currentTimeMillis()
+                                )
+                                // Save to local database
+                                withContext(Dispatchers.IO) {
+                                    LocalDatabaseHelper.saveUser(user!!)
+                                }
+                            }
+                            
+                            // Sync user to PHP backend and Firestore (async, don't wait)
+                            launch(Dispatchers.IO) {
+                                try {
+                                    user?.let { SyncManager.syncUser(requireContext(), it) }
+                                } catch (e: Exception) {
+                                    // Log error but don't block navigation
+                                    e.printStackTrace()
+                                }
+                            }
+                            
+                            // Navigate based on user's stored role (on main thread)
+                            withContext(Dispatchers.Main) {
+                                when (user?.role) {
+                                    UserRole.ADMIN -> {
+                                        startActivity(Intent(requireContext(), AdminDashboardActivity::class.java))
+                                        requireActivity().finish()
+                                    }
+                                    UserRole.GROUNDKEEPER -> {
+                                        startActivity(Intent(requireContext(), GroundkeeperDashboardActivity::class.java))
+                                        requireActivity().finish()
+                                    }
+                                    UserRole.PLAYER, null -> {
+                                        startActivity(Intent(requireContext(), HomeActivity::class.java))
+                                        requireActivity().finish()
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            // Handle any errors
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                view.findViewById<View>(R.id.btnSignIn)?.isEnabled = true
+                            }
+                        }
+                    },
+                    onFailure = { exception ->
+                        // Handle error
+                        val errorMessage = when {
+                            exception.message?.contains("email") == true -> "Invalid email address"
+                            exception.message?.contains("password") == true -> "Invalid password"
+                            exception.message?.contains("user") == true -> "User not found"
+                            exception.message?.contains("network") == true -> "Network error. Please check your connection"
+                            else -> "Login failed: ${exception.message}"
+                        }
+                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show()
+                        view.findViewById<View>(R.id.btnSignIn)?.isEnabled = true
+                    }
+                )
             }
         }
     }

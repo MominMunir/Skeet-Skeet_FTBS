@@ -14,12 +14,29 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.smd_fyp.api.ApiClient
 import com.example.smd_fyp.auth.AuthActivity
+import com.example.smd_fyp.database.LocalDatabaseHelper
+import com.example.smd_fyp.firebase.FirebaseAuthHelper
+import com.example.smd_fyp.home.BookingAdapter
+import com.example.smd_fyp.model.Booking
+import com.example.smd_fyp.sync.SyncManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MyBookingsActivity : AppCompatActivity() {
     
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var rvBookings: RecyclerView
+    private lateinit var llEmptyState: LinearLayout
+    private lateinit var tvBookingCount: TextView
+    private lateinit var bookingAdapter: BookingAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,11 +48,31 @@ class MyBookingsActivity : AppCompatActivity() {
             insets
         }
 
+        // Initialize database
+        LocalDatabaseHelper.initialize(this)
+        
         // Initialize SharedPreferences
         sharedPreferences = getSharedPreferences("user_profile", MODE_PRIVATE)
 
         // Initialize views
         drawerLayout = findViewById(R.id.drawerLayout)
+        rvBookings = findViewById(R.id.rvBookings)
+        llEmptyState = findViewById(R.id.llEmptyState)
+        tvBookingCount = findViewById(R.id.tvBookingCount)
+
+        // Setup RecyclerView
+        rvBookings.layoutManager = LinearLayoutManager(this)
+        bookingAdapter = BookingAdapter(
+            onReceiptClick = { booking ->
+                // TODO: Show receipt
+                Toast.makeText(this, "Receipt for ${booking.groundName}", Toast.LENGTH_SHORT).show()
+            },
+            onReviewClick = { booking ->
+                // TODO: Show review dialog
+                Toast.makeText(this, "Review ${booking.groundName}", Toast.LENGTH_SHORT).show()
+            }
+        )
+        rvBookings.adapter = bookingAdapter
 
         // Setup Menu button click listener
         findViewById<View>(R.id.btnMenu)?.setOnClickListener {
@@ -51,8 +88,8 @@ class MyBookingsActivity : AppCompatActivity() {
         // Setup back button handling
         setupBackPressHandler()
 
-        // Setup booking card click listeners
-        setupBookingCards()
+        // Load bookings from API
+        loadBookings()
     }
 
     private fun loadDrawerProfileData() {
@@ -107,22 +144,48 @@ class MyBookingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupBookingCards() {
-        // Receipt buttons
-        findViewById<View>(R.id.btnReceipt1)?.setOnClickListener {
-            // TODO: Show receipt
-            Toast.makeText(this, "Receipt", Toast.LENGTH_SHORT).show()
+    private fun loadBookings() {
+        val currentUser = FirebaseAuthHelper.getCurrentUser()
+        if (currentUser == null) {
+            Toast.makeText(this, "User not logged in", Toast.LENGTH_SHORT).show()
+            return
         }
         
-        findViewById<View>(R.id.btnReceipt2)?.setOnClickListener {
-            // TODO: Show receipt
-            Toast.makeText(this, "Receipt", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            try {
+                // First, observe local database (offline support)
+                LocalDatabaseHelper.getBookingsByUser(currentUser.uid)?.collect { localBookings ->
+                    bookingAdapter.updateItems(localBookings)
+                    tvBookingCount.text = "${localBookings.size} bookings"
+                    llEmptyState.visibility = if (localBookings.isEmpty()) View.VISIBLE else View.GONE
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
         
-        // Review button
-        findViewById<View>(R.id.btnReview1)?.setOnClickListener {
-            // TODO: Show review dialog
-            Toast.makeText(this, "Review", Toast.LENGTH_SHORT).show()
+        // Fetch from API if online
+        lifecycleScope.launch {
+            if (SyncManager.isOnline(this@MyBookingsActivity)) {
+                try {
+                    val apiService = ApiClient.getPhpApiService(this@MyBookingsActivity)
+                    val response = apiService.getBookings(currentUser.uid)
+                    
+                    if (response.isSuccessful && response.body() != null) {
+                        val apiBookings = response.body()!!
+                        
+                        // Save to local database
+                        withContext(Dispatchers.IO) {
+                            apiBookings.forEach { booking ->
+                                LocalDatabaseHelper.saveBooking(booking.copy(synced = true))
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Don't show error, just use local data
+                }
+            }
         }
     }
 

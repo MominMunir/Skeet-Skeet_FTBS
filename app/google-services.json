@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "842272513126",
+    "project_id": "skeetskeet-5c074",
+    "storage_bucket": "skeetskeet-5c074.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:842272513126:android:efcea67b9f097018e061a7",
+        "android_client_info": {
+          "package_name": "com.example.smd_fyp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAw-uxF0ENnfmeP08ELk-9u8cOWdl76dI4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

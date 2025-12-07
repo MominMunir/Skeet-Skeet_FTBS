@@ -105,12 +105,30 @@ class SignupFragment : Fragment() {
                                 createdAt = System.currentTimeMillis()
                             )
                             
+                            // Save to local database immediately (works offline)
+                            withContext(Dispatchers.IO) {
+                                LocalDatabaseHelper.saveUser(user)
+                            }
+                            
                             // Sync user to PHP backend and Firestore (async, don't wait)
                             launch(Dispatchers.IO) {
                                 try {
-                                    SyncManager.syncUser(requireContext(), user)
+                                    val syncResult = SyncManager.syncUser(requireContext(), user)
+                                    syncResult.fold(
+                                        onSuccess = { syncedUser ->
+                                            android.util.Log.d("SignupFragment", "User synced successfully to PHP: ${syncedUser.id}")
+                                        },
+                                        onFailure = { error ->
+                                            android.util.Log.e("SignupFragment", "Failed to sync user to PHP: ${error.message}", error)
+                                            // Optionally show a toast on main thread
+                                            withContext(Dispatchers.Main) {
+                                                Toast.makeText(requireContext(), "User created but sync to server failed. Will retry later.", Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                    )
                                 } catch (e: Exception) {
                                     // Log error but don't block navigation
+                                    android.util.Log.e("SignupFragment", "Exception during sync: ${e.message}", e)
                                     e.printStackTrace()
                                 }
                             }

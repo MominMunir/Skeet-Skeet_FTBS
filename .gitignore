@@ -8,6 +8,8 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 markdown/
+scripts/
+api/
 .vscode/
 .DS_Store
 /build

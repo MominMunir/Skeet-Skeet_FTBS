@@ -19,8 +19,18 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.smd_fyp.utils.GlideHelper
 import com.example.smd_fyp.R
+import com.example.smd_fyp.api.ApiClient
+import com.example.smd_fyp.database.LocalDatabaseHelper
+import com.example.smd_fyp.firebase.FirebaseAuthHelper
+import com.example.smd_fyp.model.User
+import com.example.smd_fyp.sync.SyncManager
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -39,6 +49,9 @@ class EditProfileFragment : Fragment() {
     
     private lateinit var sharedPreferences: SharedPreferences
     private var profileImageUri: Uri? = null
+    private var currentUser: User? = null
+    private var uploadedImageUrl: String? = null
+    private var isNewImageSelected: Boolean = false
 
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -62,6 +75,9 @@ class EditProfileFragment : Fragment() {
                     ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
                     ivProfilePicture.setImageBitmap(bitmap)
                     saveBitmapToUri(bitmap)
+                    // Mark that a new image was selected
+                    isNewImageSelected = true
+                    uploadedImageUrl = null // Clear previous URL so it will be uploaded
                 }
             }
         }
@@ -81,11 +97,14 @@ class EditProfileFragment : Fragment() {
         // Initialize SharedPreferences
         sharedPreferences = requireContext().getSharedPreferences("user_profile", 0)
         
+        // Initialize database
+        LocalDatabaseHelper.initialize(requireContext())
+        
         // Initialize views
         initializeViews()
         
-        // Load saved profile data
-        loadProfileData()
+        // Load profile data from PHP/Firebase
+        loadProfileDataFromServer()
         
         // Setup click listeners
         setupClickListeners()
@@ -167,6 +186,10 @@ class EditProfileFragment : Fragment() {
             
             ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
             ivProfilePicture.setImageBitmap(bitmap)
+            
+            // Mark that a new image was selected
+            isNewImageSelected = true
+            uploadedImageUrl = null // Clear previous URL so it will be uploaded
             
             // Save image URI to preferences
             sharedPreferences.edit().putString("profile_image_uri", uri.toString()).apply()
@@ -251,9 +274,7 @@ class EditProfileFragment : Fragment() {
                 val confirmPassword = etConfirmPassword.text.toString()
 
                 if (validatePasswordChange(currentPassword, newPassword, confirmPassword)) {
-                    // TODO: Implement actual password change logic with backend
-                    sharedPreferences.edit().putString("password", newPassword).apply()
-                    Toast.makeText(requireContext(), "Password changed successfully", Toast.LENGTH_SHORT).show()
+                    changePassword(currentPassword, newPassword)
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -280,21 +301,137 @@ class EditProfileFragment : Fragment() {
             return false
         }
 
-        // TODO: Verify current password with backend
         return true
     }
+    
+    private fun changePassword(currentPassword: String, newPassword: String) {
+        lifecycleScope.launch {
+            try {
+                val firebaseUser = FirebaseAuthHelper.getCurrentUser()
+                if (firebaseUser == null || firebaseUser.email == null) {
+                    Toast.makeText(requireContext(), "User not logged in", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                
+                // Re-authenticate user first (required for password change)
+                val reauthResult = withContext(Dispatchers.IO) {
+                    FirebaseAuthHelper.reauthenticateUser(firebaseUser.email!!, currentPassword)
+                }
+                
+                if (reauthResult.isFailure) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(requireContext(), "Current password is incorrect", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+                
+                // Update password
+                val updateResult = withContext(Dispatchers.IO) {
+                    FirebaseAuthHelper.updatePassword(newPassword)
+                }
+                
+                withContext(Dispatchers.Main) {
+                    updateResult.fold(
+                        onSuccess = {
+                            Toast.makeText(requireContext(), "Password changed successfully", Toast.LENGTH_SHORT).show()
+                        },
+                        onFailure = { error ->
+                            android.util.Log.e("EditProfile", "Error changing password: ${error.message}", error)
+                            Toast.makeText(requireContext(), "Error changing password: ${error.message}", Toast.LENGTH_LONG).show()
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("EditProfile", "Error changing password: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Error changing password: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
 
-    private fun loadProfileData() {
-        // Load text fields
-        etUsername.setText(sharedPreferences.getString("username", ""))
-        etFullName.setText(sharedPreferences.getString("full_name", ""))
-        etEmail.setText(sharedPreferences.getString("email", ""))
-        etPhone.setText(sharedPreferences.getString("phone", ""))
-        etAge.setText(sharedPreferences.getString("age", ""))
-        tvGender.text = sharedPreferences.getString("gender", "Select Gender")
-        etLocation.setText(sharedPreferences.getString("location", ""))
-
-        // Load profile image
+    private fun loadProfileDataFromServer() {
+        lifecycleScope.launch {
+            try {
+                val firebaseUser = FirebaseAuthHelper.getCurrentUser()
+                if (firebaseUser == null) {
+                    Toast.makeText(requireContext(), "User not logged in", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                
+                // Try to get user from local DB first
+                currentUser = withContext(Dispatchers.IO) {
+                    LocalDatabaseHelper.getUser(firebaseUser.uid)
+                }
+                
+                // If not in local DB, fetch from PHP API
+                if (currentUser == null) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val apiService = ApiClient.getPhpApiService(requireContext())
+                            val response = apiService.getUser(firebaseUser.uid)
+                            if (response.isSuccessful && response.body() != null) {
+                                currentUser = response.body()
+                                // Save to local DB
+                                currentUser?.let { LocalDatabaseHelper.saveUser(it) }
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("EditProfile", "Error fetching user: ${e.message}", e)
+                        }
+                    }
+                }
+                
+                // Load data into UI
+                withContext(Dispatchers.Main) {
+                    currentUser?.let { user ->
+                        etFullName.setText(user.fullName)
+                        etEmail.setText(user.email)
+                        etPhone.setText(user.phoneNumber ?: "")
+                        
+                        // Load additional fields from SharedPreferences (not synced to backend)
+                        etUsername.setText(sharedPreferences.getString("username", ""))
+                        etAge.setText(sharedPreferences.getString("age", ""))
+                        tvGender.text = sharedPreferences.getString("gender", "Select Gender")
+                        etLocation.setText(sharedPreferences.getString("location", ""))
+                        
+                        // Load profile image
+                        user.profileImageUrl?.let { imageUrl ->
+                            // Normalize URL to use correct IP
+                            val normalizedUrl = ApiClient.normalizeImageUrl(requireContext(), imageUrl)
+                            uploadedImageUrl = normalizedUrl
+                            isNewImageSelected = false
+                            android.util.Log.d("EditProfile", "Loading profile image from URL: $normalizedUrl (original: $imageUrl)")
+                            loadImageWithGlide(normalizedUrl)
+                        } ?: run {
+                            // Fallback to SharedPreferences
+                            uploadedImageUrl = null
+                            isNewImageSelected = false
+                            loadProfileImageFromPreferences()
+                        }
+                    } ?: run {
+                        // Fallback to SharedPreferences if user not found
+                        loadProfileImageFromPreferences()
+                        etFullName.setText(sharedPreferences.getString("full_name", ""))
+                        etEmail.setText(sharedPreferences.getString("email", ""))
+                        etPhone.setText(sharedPreferences.getString("phone", ""))
+                        etUsername.setText(sharedPreferences.getString("username", ""))
+                        etAge.setText(sharedPreferences.getString("age", ""))
+                        tvGender.text = sharedPreferences.getString("gender", "Select Gender")
+                        etLocation.setText(sharedPreferences.getString("location", ""))
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("EditProfile", "Error loading profile: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(requireContext(), "Error loading profile data", Toast.LENGTH_SHORT).show()
+                    // Fallback to SharedPreferences
+                    loadProfileImageFromPreferences()
+                }
+            }
+        }
+    }
+    
+    private fun loadProfileImageFromPreferences() {
         val imageUriString = sharedPreferences.getString("profile_image_uri", null)
         val imageBase64 = sharedPreferences.getString("profile_image_base64", null)
         
@@ -305,7 +442,6 @@ class EditProfileFragment : Fragment() {
                 loadImageIntoView(uri)
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Fallback to base64 if URI fails
                 if (imageBase64 != null) {
                     loadImageFromBase64(imageBase64)
                 }
@@ -316,21 +452,15 @@ class EditProfileFragment : Fragment() {
     }
 
     private fun saveProfile() {
-        val username = etUsername.text.toString().trim()
         val fullName = etFullName.text.toString().trim()
         val email = etEmail.text.toString().trim()
         val phone = etPhone.text.toString().trim()
+        val username = etUsername.text.toString().trim()
         val age = etAge.text.toString().trim()
         val gender = tvGender.text.toString()
         val location = etLocation.text.toString().trim()
 
         // Validation
-        if (username.isEmpty()) {
-            etUsername.error = "Username is required"
-            etUsername.requestFocus()
-            return
-        }
-
         if (fullName.isEmpty()) {
             etFullName.error = "Full name is required"
             etFullName.requestFocus()
@@ -349,44 +479,211 @@ class EditProfileFragment : Fragment() {
             return
         }
 
-        if (age.isNotEmpty()) {
-            val ageInt = age.toIntOrNull()
-            if (ageInt == null || ageInt < 1 || ageInt > 150) {
-                etAge.error = "Valid age is required"
-                etAge.requestFocus()
-                return
-            }
+        val firebaseUser = FirebaseAuthHelper.getCurrentUser()
+        if (firebaseUser == null) {
+            Toast.makeText(requireContext(), "User not logged in", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        // Save to SharedPreferences
-        sharedPreferences.edit().apply {
-            putString("username", username)
-            putString("full_name", fullName)
-            putString("email", email)
-            putString("phone", phone)
-            putString("age", age)
-            putString("gender", if (gender != "Select Gender") gender else "")
-            putString("location", location)
-            if (profileImageUri != null) {
-                putString("profile_image_uri", profileImageUri.toString())
-            }
-            apply()
-        }
+        // Show loading
+        view?.findViewById<View>(R.id.btnSave)?.isEnabled = false
 
-        // TODO: Save to backend/database
-        
-        // Update parent activity's header if it exists
+        lifecycleScope.launch {
+            try {
+                var imageUrl = uploadedImageUrl
+                val emailChanged = firebaseUser.email != email
+                
+                // Check if email changed - if so, update Firebase Auth (requires re-authentication)
+                if (emailChanged) {
+                    android.util.Log.d("EditProfile", "Email changed from ${firebaseUser.email} to $email")
+                    // Note: Firebase email update requires re-authentication
+                    // For now, we'll update it in the database but not in Firebase Auth
+                    // User can update Firebase Auth email separately through password change flow
+                }
+                
+                // Upload image if a new one was selected
+                if (isNewImageSelected && profileImageUri != null) {
+                    android.util.Log.d("EditProfile", "Uploading new profile image...")
+                    imageUrl = uploadProfileImage()
+                    if (imageUrl != null) {
+                        android.util.Log.d("EditProfile", "Image uploaded successfully: $imageUrl")
+                        uploadedImageUrl = imageUrl
+                        isNewImageSelected = false
+                        
+                        // Update image display immediately
+                        withContext(Dispatchers.Main) {
+                            loadImageWithGlide(imageUrl)
+                        }
+                    } else {
+                        android.util.Log.e("EditProfile", "Image upload failed")
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(requireContext(), "Failed to upload image. Profile will be saved without image.", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+                
+                // Update user object
+                val updatedUser = (currentUser ?: User(
+                    id = firebaseUser.uid,
+                    email = email, // Use the new email from form
+                    fullName = fullName,
+                    createdAt = System.currentTimeMillis()
+                )).copy(
+                    fullName = fullName,
+                    email = email, // Update email in database
+                    phoneNumber = phone.takeIf { it.isNotEmpty() },
+                    profileImageUrl = imageUrl ?: currentUser?.profileImageUrl // Keep existing URL if upload failed
+                )
+                
+                // Save to local DB first
+                withContext(Dispatchers.IO) {
+                    LocalDatabaseHelper.saveUser(updatedUser.copy(synced = false))
+                }
+                
+                // Sync to PHP and Firebase
+                val syncResult = withContext(Dispatchers.IO) {
+                    SyncManager.syncUser(requireContext(), updatedUser)
+                }
+                
+                withContext(Dispatchers.Main) {
+                    view?.findViewById<View>(R.id.btnSave)?.isEnabled = true
+                    
+                    syncResult.fold(
+                        onSuccess = { syncedUser ->
+                            currentUser = syncedUser
+                            uploadedImageUrl = syncedUser.profileImageUrl // Update uploaded URL
+                            
+                            // Save to SharedPreferences for backward compatibility
+                            sharedPreferences.edit().apply {
+                                putString("full_name", syncedUser.fullName)
+                                putString("email", syncedUser.email)
+                                putString("phone", syncedUser.phoneNumber ?: "")
+                                syncedUser.profileImageUrl?.let {
+                                    putString("profile_image_url", it)
+                                    android.util.Log.d("EditProfile", "Saved profile image URL: $it")
+                                }
+                                // Save additional fields (not synced to backend)
+                                putString("username", username)
+                                putString("age", age)
+                                putString("gender", if (gender != "Select Gender") gender else "")
+                                putString("location", location)
+                                apply()
+                            }
+                            
+                            // Update image display with the synced URL
+                            syncedUser.profileImageUrl?.let { imageUrl ->
+                                withContext(Dispatchers.Main) {
+                                    val normalizedUrl = ApiClient.normalizeImageUrl(requireContext(), imageUrl)
+                                    loadImageWithGlide(normalizedUrl)
+                                }
+                            }
+                            
+                            // Update parent activity
+                            try {
+                                val activity = requireActivity() as? com.example.smd_fyp.UserProfileActivity
+                                activity?.refreshProfileData()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                            
+                            val message = if (emailChanged) {
+                                "Profile saved successfully. Note: Email change in Firebase Auth requires re-authentication."
+                            } else {
+                                "Profile saved successfully"
+                            }
+                            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                            requireActivity().supportFragmentManager.popBackStack()
+                        },
+                        onFailure = { error ->
+                            android.util.Log.e("EditProfile", "Error saving profile: ${error.message}", error)
+                            Toast.makeText(requireContext(), "Error saving profile: ${error.message}", Toast.LENGTH_LONG).show()
+                        }
+                    )
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("EditProfile", "Error saving profile: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    view?.findViewById<View>(R.id.btnSave)?.isEnabled = true
+                    Toast.makeText(requireContext(), "Error saving profile: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+    
+    private suspend fun uploadProfileImage(): String? = withContext(Dispatchers.IO) {
         try {
-            val activity = requireActivity() as? com.example.smd_fyp.UserProfileActivity
-            activity?.refreshProfileData()
+            val bitmap = if (profileImageUri != null) {
+                try {
+                    val inputStream = requireContext().contentResolver.openInputStream(profileImageUri!!)
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    inputStream?.close()
+                    bitmap
+                } catch (e: Exception) {
+                    android.util.Log.e("EditProfile", "Error reading image: ${e.message}", e)
+                    null
+                }
+            } else {
+                null
+            }
+            
+            if (bitmap == null) {
+                android.util.Log.e("EditProfile", "Bitmap is null, cannot upload")
+                return@withContext null
+            }
+            
+            // Convert to base64
+            val outputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+            val byteArray = outputStream.toByteArray()
+            val base64Image = Base64.encodeToString(byteArray, Base64.NO_WRAP)
+            
+            android.util.Log.d("EditProfile", "Image size: ${byteArray.size} bytes, Base64 length: ${base64Image.length}")
+            
+            // Upload to PHP API
+            val apiService = ApiClient.getPhpApiService(requireContext())
+            val response = apiService.uploadBase64Image(
+                base64Image = base64Image,
+                folder = "users",
+                imageType = "jpg"
+            )
+            
+            android.util.Log.d("EditProfile", "Upload response code: ${response.code()}")
+            
+            if (response.isSuccessful && response.body() != null) {
+                val uploadResponse = response.body()!!
+                android.util.Log.d("EditProfile", "Upload response: success=${uploadResponse.success}, url=${uploadResponse.url}")
+                
+                if (uploadResponse.success && uploadResponse.url != null) {
+                    // Normalize the URL to use the correct IP address
+                    ApiClient.normalizeImageUrl(requireContext(), uploadResponse.url)
+                } else {
+                    android.util.Log.e("EditProfile", "Image upload failed: ${uploadResponse.message}")
+                    null
+                }
+            } else {
+                val errorBody = try {
+                    response.errorBody()?.string() ?: "Unknown error"
+                } catch (e: Exception) {
+                    "Could not read error body: ${e.message}"
+                }
+                android.util.Log.e("EditProfile", "Image upload failed: ${response.code()} - $errorBody")
+                null
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("EditProfile", "Error uploading image: ${e.message}", e)
+            null
         }
-        
-        Toast.makeText(requireContext(), "Profile saved successfully", Toast.LENGTH_SHORT).show()
-        
-        // Go back to settings
-        requireActivity().supportFragmentManager.popBackStack()
+    }
+    
+    private fun loadImageWithGlide(imageUrl: String?) {
+        GlideHelper.loadImage(
+            context = requireContext(),
+            imageUrl = imageUrl,
+            imageView = ivProfilePicture,
+            placeholder = R.drawable.ic_person,
+            errorDrawable = R.drawable.ic_person,
+            tag = "EditProfile"
+        )
     }
 }
 

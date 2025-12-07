@@ -14,12 +14,20 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.FragmentContainerView
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.smd_fyp.api.ApiClient
 import com.example.smd_fyp.auth.AuthActivity
+import com.example.smd_fyp.database.LocalDatabaseHelper
 import com.example.smd_fyp.fragments.NotificationsFragment
 import com.example.smd_fyp.home.GroundAdapter
-import com.example.smd_fyp.model.Ground
+import com.example.smd_fyp.model.GroundApi
+import com.example.smd_fyp.sync.SyncManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeActivity : AppCompatActivity() {
     
@@ -41,6 +49,9 @@ class HomeActivity : AppCompatActivity() {
             insets
         }
 
+        // Initialize database
+        LocalDatabaseHelper.initialize(this)
+        
         // Initialize views
         drawerLayout = findViewById(R.id.drawerLayout)
         llFilterOptions = findViewById(R.id.llFilterOptions)
@@ -48,32 +59,19 @@ class HomeActivity : AppCompatActivity() {
         tvPriceFilter = findViewById(R.id.tvPriceFilter)
         fragmentContainerNotifications = findViewById(R.id.fragmentContainerNotifications)
 
-        // Wire RecyclerView with mock data so cards render at runtime
+        // Setup RecyclerView
         val rv = findViewById<RecyclerView>(R.id.rvFeaturedGrounds)
         rv.layoutManager = LinearLayoutManager(this)
+        
+        val adapter = GroundAdapter(mutableListOf<GroundApi>()) { ground ->
+            // Handle ground click - navigate to ground details
+            // TODO: Navigate to ground details screen
+            Toast.makeText(this, "Clicked: ${ground.name}", Toast.LENGTH_SHORT).show()
+        }
+        rv.adapter = adapter
 
-        val items = listOf(
-            Ground(
-                name = getString(R.string.ground_rc_name),
-                location = getString(R.string.ground_gv_location),
-                priceText = getString(R.string.ground_rc_price),
-                ratingText = getString(R.string.ground_rc_rating),
-                imageResId = R.drawable.mock_ground1,
-                hasFloodlights = true,
-                hasParking = true
-            ),
-            Ground(
-                name = getString(R.string.ground_gv_name),
-                location = getString(R.string.ground_gv_location),
-                priceText = getString(R.string.ground_gv_price),
-                ratingText = getString(R.string.ground_gv_rating),
-                imageResId = R.drawable.mock_ground2,
-                hasFloodlights = true,
-                hasParking = false
-            )
-        )
-
-        rv.adapter = GroundAdapter(items)
+        // Load grounds from API
+        loadGrounds(adapter)
 
         // Setup Filters button click listener
         findViewById<View>(R.id.btnFilters)?.setOnClickListener {
@@ -114,6 +112,42 @@ class HomeActivity : AppCompatActivity() {
 
         // TODO: Setup search functionality
         // TODO: Setup other top bar button click listeners
+    }
+    
+    private fun loadGrounds(adapter: GroundAdapter) {
+        lifecycleScope.launch {
+            try {
+                // First, observe local database (offline support)
+                LocalDatabaseHelper.getAllGrounds()?.collect { localGrounds: List<GroundApi> ->
+                    val availableGrounds: List<GroundApi> = localGrounds.filter { it.available }
+                    adapter.updateItems(availableGrounds)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        
+        // Fetch from API if online
+        lifecycleScope.launch {
+            if (SyncManager.isOnline(this@HomeActivity)) {
+                try {
+                    val apiService = ApiClient.getPhpApiService(this@HomeActivity)
+                    val response = apiService.getGrounds()
+                    
+                    if (response.isSuccessful && response.body() != null) {
+                        val apiGrounds = response.body()!!
+                        
+                        // Save to local database
+                        withContext(Dispatchers.IO) {
+                            LocalDatabaseHelper.saveGrounds(apiGrounds.map { it.copy(synced = true) })
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Don't show error toast, just use local data
+                }
+            }
+        }
     }
 
     private fun toggleFilters() {

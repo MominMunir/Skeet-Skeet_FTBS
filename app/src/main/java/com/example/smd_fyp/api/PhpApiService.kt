@@ -61,12 +61,24 @@ interface PhpApiService {
     @PUT("users.php")
     suspend fun updateUser(@Body user: User): Response<User>
     
+    @DELETE("users.php")
+    suspend fun deleteUser(@Query("id") id: String): Response<ResponseBody>
+    
     // Image Upload API
     @Multipart
     @POST("upload.php")
     suspend fun uploadImage(
         @Part("folder") folder: RequestBody, // e.g., "grounds" or "users"
         @Part image: MultipartBody.Part
+    ): Response<ImageUploadResponse>
+    
+    // Base64 Image Upload (for Android)
+    @FormUrlEncoded
+    @POST("upload.php")
+    suspend fun uploadBase64Image(
+        @Field("image") base64Image: String,
+        @Field("folder") folder: String = "general",
+        @Field("imageType") imageType: String = "png"
     ): Response<ImageUploadResponse>
     
     @GET("images.php")
@@ -77,7 +89,8 @@ data class ImageUploadResponse(
     val success: Boolean,
     val message: String,
     val path: String? = null,
-    val url: String? = null
+    val url: String? = null,
+    val imageName: String? = null
 )
 
 data class ImageUrlResponse(

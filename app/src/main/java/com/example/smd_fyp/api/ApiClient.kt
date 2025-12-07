@@ -61,6 +61,38 @@ object ApiClient {
     }
     
     /**
+     * Normalize image URL to use the correct IP address from strings.xml
+     * Replaces localhost with the configured IP address
+     */
+    fun normalizeImageUrl(context: Context, imageUrl: String?): String? {
+        if (imageUrl.isNullOrEmpty()) return null
+        
+        val ip = context.getString(R.string.api_ip)
+        val actualIp = if (ip == "localhost") "10.0.2.2" else ip
+        
+        // Check if URL already uses the correct IP
+        if (imageUrl.contains("://$actualIp/") || imageUrl.contains("://$ip/")) {
+            return imageUrl
+        }
+        
+        // Replace localhost/127.0.0.1 with the actual IP
+        var normalized = imageUrl
+            .replace("http://localhost/", "http://$actualIp/")
+            .replace("https://localhost/", "https://$actualIp/")
+            .replace("http://127.0.0.1/", "http://$actualIp/")
+            .replace("https://127.0.0.1/", "https://$actualIp/")
+        
+        // Also handle URLs without trailing slash
+        normalized = normalized
+            .replace("http://localhost:", "http://$actualIp:")
+            .replace("https://localhost:", "https://$actualIp:")
+            .replace("http://127.0.0.1:", "http://$actualIp:")
+            .replace("https://127.0.0.1:", "https://$actualIp:")
+        
+        return normalized
+    }
+    
+    /**
      * Reset API client (useful for testing or when IP changes)
      */
     fun reset() {

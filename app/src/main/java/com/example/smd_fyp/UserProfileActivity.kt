@@ -22,10 +22,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.smd_fyp.utils.GlideHelper
+import com.example.smd_fyp.api.ApiClient
+import com.example.smd_fyp.database.LocalDatabaseHelper
 import com.example.smd_fyp.fragments.BookingsFragment
 import com.example.smd_fyp.fragments.FavoritesFragment
 import com.example.smd_fyp.fragments.SettingsFragment
+import com.example.smd_fyp.firebase.FirebaseAuthHelper
+import com.example.smd_fyp.model.User
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -83,12 +92,15 @@ class UserProfileActivity : AppCompatActivity() {
 
         // Initialize SharedPreferences
         sharedPreferences = getSharedPreferences("user_profile", MODE_PRIVATE)
+        
+        // Initialize database
+        LocalDatabaseHelper.initialize(this)
 
         // Initialize views
         initializeViews()
 
-        // Load saved profile data
-        loadProfileData()
+        // Load profile data from PHP/Firebase
+        loadProfileDataFromServer()
 
         // Setup tabs
         setupTabs()
@@ -163,28 +175,97 @@ class UserProfileActivity : AppCompatActivity() {
             .commit()
     }
 
-    private fun loadProfileData() {
-        // Load user info
-        val fullName = sharedPreferences.getString("full_name", "Ahmed Khan") ?: "Ahmed Khan"
-        val email = sharedPreferences.getString("email", "ahmed@example.com") ?: "ahmed@example.com"
+    private fun loadProfileDataFromServer() {
+        lifecycleScope.launch {
+            try {
+                val firebaseUser = FirebaseAuthHelper.getCurrentUser()
+                if (firebaseUser == null) {
+                    // Fallback to SharedPreferences
+                    loadProfileDataFromPreferences()
+                    return@launch
+                }
+                
+                // Try to get user from local DB first
+                var user: User? = withContext(Dispatchers.IO) {
+                    LocalDatabaseHelper.getUser(firebaseUser.uid)
+                }
+                
+                // If not in local DB, fetch from PHP API
+                if (user == null) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val apiService = ApiClient.getPhpApiService(this@UserProfileActivity)
+                            val response = apiService.getUser(firebaseUser.uid)
+                            if (response.isSuccessful && response.body() != null) {
+                                user = response.body()
+                                // Save to local DB
+                                user?.let { LocalDatabaseHelper.saveUser(it) }
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("UserProfile", "Error fetching user: ${e.message}", e)
+                        }
+                    }
+                }
+                
+                // Update UI
+                withContext(Dispatchers.Main) {
+                    user?.let {
+                        tvUserName.text = it.fullName
+                        tvUserEmail.text = it.email
+                        tvUserRole.text = it.role.name
+                        
+                        // Load profile image
+                        it.profileImageUrl?.let { imageUrl ->
+                            // Normalize URL to use correct IP
+                            val normalizedUrl = ApiClient.normalizeImageUrl(this@UserProfileActivity, imageUrl)
+                            android.util.Log.d("UserProfile", "Loading profile image from URL: $normalizedUrl (original: $imageUrl)")
+                            loadImageWithGlide(normalizedUrl)
+                        } ?: run {
+                            android.util.Log.d("UserProfile", "No profile image URL, loading from preferences")
+                            // Fallback to SharedPreferences
+                            loadProfileImageFromPreferences()
+                        }
+                    } ?: run {
+                        // Fallback to SharedPreferences
+                        loadProfileDataFromPreferences()
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("UserProfile", "Error loading profile: ${e.message}", e)
+                loadProfileDataFromPreferences()
+            }
+        }
+    }
+    
+    private fun loadProfileDataFromPreferences() {
+        val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+        val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
         val role = sharedPreferences.getString("role", "Player") ?: "Player"
         
         tvUserName.text = fullName
         tvUserEmail.text = email
         tvUserRole.text = role
-
-        // Load profile image
+        
+        loadProfileImageFromPreferences()
+    }
+    
+    private fun loadProfileImageFromPreferences() {
         val imageUriString = sharedPreferences.getString("profile_image_uri", null)
         val imageBase64 = sharedPreferences.getString("profile_image_base64", null)
+        val imageUrl = sharedPreferences.getString("profile_image_url", null)
         
-        if (imageUriString != null) {
+        if (imageUrl != null) {
+            // Normalize URL to use correct IP
+            val normalizedUrl = ApiClient.normalizeImageUrl(this, imageUrl)
+            android.util.Log.d("UserProfile", "Loading image from SharedPreferences URL: $normalizedUrl (original: $imageUrl)")
+            loadImageWithGlide(normalizedUrl)
+        } else if (imageUriString != null) {
             try {
                 val uri = Uri.parse(imageUriString)
                 profileImageUri = uri
                 loadImageIntoView(uri)
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Fallback to base64 if URI fails
                 if (imageBase64 != null) {
                     loadImageFromBase64(imageBase64)
                 }
@@ -195,7 +276,7 @@ class UserProfileActivity : AppCompatActivity() {
     }
     
     fun refreshProfileData() {
-        loadProfileData()
+        loadProfileDataFromServer()
     }
 
     private fun showImagePickerDialog() {
@@ -287,5 +368,16 @@ class UserProfileActivity : AppCompatActivity() {
             e.printStackTrace()
             null
         }
+    }
+    
+    private fun loadImageWithGlide(imageUrl: String?) {
+        GlideHelper.loadImage(
+            context = this,
+            imageUrl = imageUrl,
+            imageView = ivProfileIcon,
+            placeholder = R.drawable.ic_person,
+            errorDrawable = R.drawable.ic_person,
+            tag = "UserProfile"
+        )
     }
 }

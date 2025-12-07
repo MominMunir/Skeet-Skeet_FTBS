@@ -49,6 +49,7 @@
                     android:textColor="@android:color/white"
                     android:textSize="20sp"
                     android:textStyle="bold"
+                    android:paddingEnd="50dp"
                     android:gravity="center" />
             </LinearLayout>
 
@@ -73,11 +74,10 @@
                         android:layout_height="match_parent"
                         android:scaleType="centerCrop"
                         android:src="@drawable/ic_person"
-                        app:tint="@color/text_secondary"
                         android:contentDescription="@string/profile_picture"
-                        android:padding="8dp"
                         android:clickable="true"
-                        android:focusable="true" />
+                        android:focusable="true"
+                        android:adjustViewBounds="true" />
                 </androidx.cardview.widget.CardView>
 
                 <TextView
@@ -411,12 +411,28 @@
             android:layout_height="56dp"
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="16dp"
             android:text="@string/save_profile"
             android:textColor="@android:color/white"
             android:textSize="16sp"
             android:textStyle="bold"
             android:backgroundTint="@color/green_600"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:elevation="2dp" />
+
+        <!-- Delete Account Button -->
+        <Button
+            android:id="@+id/btnDeleteAccount"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="24dp"
+            android:text="@string/delete_account"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="@android:color/holo_red_dark"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:elevation="2dp" />
     </LinearLayout>

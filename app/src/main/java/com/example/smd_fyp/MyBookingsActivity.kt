@@ -64,12 +64,22 @@ class MyBookingsActivity : AppCompatActivity() {
         rvBookings.layoutManager = LinearLayoutManager(this)
         bookingAdapter = BookingAdapter(
             onReceiptClick = { booking ->
-                // TODO: Show receipt
-                Toast.makeText(this, "Receipt for ${booking.groundName}", Toast.LENGTH_SHORT).show()
+                // Show receipt activity
+                val intent = android.content.Intent(this, com.example.smd_fyp.ReceiptActivity::class.java)
+                intent.putExtra("booking_id", booking.id)
+                startActivity(intent)
             },
             onReviewClick = { booking ->
-                // TODO: Show review dialog
-                Toast.makeText(this, "Review ${booking.groundName}", Toast.LENGTH_SHORT).show()
+                // Show review dialog using fragment manager
+                val reviewDialog = com.example.smd_fyp.ReviewDialog.newInstance(
+                    booking,
+                    onReviewSubmitted = { booking, rating, reviewText ->
+                        // Review is already saved in ReviewDialog
+                        android.util.Log.d("MyBookingsActivity", "Review submitted: Rating=$rating, Review=$reviewText")
+                    }
+                )
+                // Use supportFragmentManager since we're in an Activity
+                reviewDialog.show(supportFragmentManager, "ReviewDialog")
             }
         )
         rvBookings.adapter = bookingAdapter

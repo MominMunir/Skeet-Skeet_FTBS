@@ -16,6 +16,8 @@ import com.example.smd_fyp.HomeActivity
 import com.example.smd_fyp.R
 import com.example.smd_fyp.auth.ResetPasswordActivity
 import com.example.smd_fyp.database.LocalDatabaseHelper
+import com.example.smd_fyp.firebase.FCMTokenHelper
+import com.example.smd_fyp.firebase.FCMTokenManager
 import com.example.smd_fyp.firebase.FirebaseAuthHelper
 import com.example.smd_fyp.model.User
 import com.example.smd_fyp.model.UserRole
@@ -117,6 +119,25 @@ class LoginFragment : Fragment() {
                                 } catch (e: Exception) {
                                     // Log error but don't block navigation
                                     e.printStackTrace()
+                                }
+                            }
+                            
+                            // Register FCM token for push notifications
+                            launch(Dispatchers.IO) {
+                                try {
+                                    val tokenResult = FCMTokenHelper.getFCMToken()
+                                    tokenResult.fold(
+                                        onSuccess = { token ->
+                                            FCMTokenHelper.saveTokenToPreferences(requireContext(), token)
+                                            // Register token with server
+                                            FCMTokenManager.registerToken(requireContext(), firebaseUser.uid, token)
+                                        },
+                                        onFailure = { e ->
+                                            android.util.Log.e("Login", "Failed to get FCM token: ${e.message}")
+                                        }
+                                    )
+                                } catch (e: Exception) {
+                                    android.util.Log.e("Login", "Error registering FCM token: ${e.message}")
                                 }
                             }
                             

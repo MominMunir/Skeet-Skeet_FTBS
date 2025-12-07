@@ -2,10 +2,12 @@ package com.example.smd_fyp
 
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import android.content.Intent
+import android.content.SharedPreferences
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +22,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.smd_fyp.api.ApiClient
 import com.example.smd_fyp.auth.AuthActivity
 import com.example.smd_fyp.database.LocalDatabaseHelper
+import com.example.smd_fyp.firebase.FirebaseAuthHelper
+import com.example.smd_fyp.utils.GlideHelper
 import com.example.smd_fyp.fragments.NotificationsFragment
 import com.example.smd_fyp.home.GroundAdapter
 import com.example.smd_fyp.model.GroundApi
@@ -64,9 +68,11 @@ class HomeActivity : AppCompatActivity() {
         rv.layoutManager = LinearLayoutManager(this)
         
         val adapter = GroundAdapter(mutableListOf<GroundApi>()) { ground ->
-            // Handle ground click - navigate to ground details
-            // TODO: Navigate to ground details screen
-            Toast.makeText(this, "Clicked: ${ground.name}", Toast.LENGTH_SHORT).show()
+            // Navigate to ground details screen
+            val intent = Intent(this, GroundDetailActivity::class.java).apply {
+                putExtra("ground_id", ground.id)
+            }
+            startActivity(intent)
         }
         rv.adapter = adapter
 
@@ -107,11 +113,100 @@ class HomeActivity : AppCompatActivity() {
         // Setup Navigation Drawer menu items
         setupDrawerMenu()
 
+        // Load drawer profile data
+        loadDrawerProfileData()
+
         // Setup back button handling
         setupBackPressHandler()
 
         // TODO: Setup search functionality
         // TODO: Setup other top bar button click listeners
+    }
+    
+    private fun loadDrawerProfileData() {
+        lifecycleScope.launch {
+            try {
+                val currentUser = FirebaseAuthHelper.getCurrentUser()
+                if (currentUser == null) {
+                    // Fallback to SharedPreferences
+                    val sharedPreferences = getSharedPreferences("user_profile", MODE_PRIVATE)
+                    val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+                    val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
+                    
+                    findViewById<TextView>(R.id.tvUserName)?.text = fullName
+                    findViewById<TextView>(R.id.tvUserEmail)?.text = email
+                    
+                    // Load profile image
+                    val imageUrl = sharedPreferences.getString("profile_image_url", null)
+                    if (!imageUrl.isNullOrEmpty()) {
+                        val normalizedUrl = ApiClient.normalizeImageUrl(this@HomeActivity, imageUrl)
+                        GlideHelper.loadImage(
+                            context = this@HomeActivity,
+                            imageUrl = normalizedUrl,
+                            imageView = findViewById(R.id.ivProfilePicture),
+                            placeholder = R.drawable.ic_person,
+                            errorDrawable = R.drawable.ic_person,
+                            tag = "Drawer",
+                            useCircleCrop = true
+                        )
+                    } else {
+                        findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                    }
+                    return@launch
+                }
+                
+                // Get user from database
+                val user = withContext(Dispatchers.IO) {
+                    LocalDatabaseHelper.getUser(currentUser.uid)
+                }
+                
+                withContext(Dispatchers.Main) {
+                    if (user != null) {
+                        findViewById<TextView>(R.id.tvUserName)?.text = user.fullName
+                        findViewById<TextView>(R.id.tvUserEmail)?.text = user.email
+                        
+                        // Load profile image
+                        user.profileImageUrl?.let { imageUrl ->
+                            if (imageUrl.isNotBlank()) {
+                                val normalizedUrl = ApiClient.normalizeImageUrl(this@HomeActivity, imageUrl)
+                                GlideHelper.loadImage(
+                                    context = this@HomeActivity,
+                                    imageUrl = normalizedUrl,
+                                    imageView = findViewById(R.id.ivProfilePicture),
+                                    placeholder = R.drawable.ic_person,
+                                    errorDrawable = R.drawable.ic_person,
+                                    tag = "Drawer",
+                                    useCircleCrop = true
+                                )
+                            } else {
+                                findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                            }
+                        } ?: run {
+                            findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                        }
+                    } else {
+                        // Fallback to SharedPreferences
+                        val sharedPreferences = getSharedPreferences("user_profile", MODE_PRIVATE)
+                        val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+                        val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
+                        
+                        findViewById<TextView>(R.id.tvUserName)?.text = fullName
+                        findViewById<TextView>(R.id.tvUserEmail)?.text = email
+                        findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Fallback to SharedPreferences on error
+                val sharedPreferences = getSharedPreferences("user_profile", MODE_PRIVATE)
+                val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+                val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
+                
+                findViewById<TextView>(R.id.tvUserName)?.text = fullName
+                findViewById<TextView>(R.id.tvUserEmail)?.text = email
+                findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+            }
+        }
     }
     
     private fun loadGrounds(adapter: GroundAdapter) {

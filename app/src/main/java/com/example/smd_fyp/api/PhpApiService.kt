@@ -1,7 +1,10 @@
 package com.example.smd_fyp.api
 
 import com.example.smd_fyp.model.Booking
+import com.example.smd_fyp.model.Favorite
 import com.example.smd_fyp.model.GroundApi
+import com.example.smd_fyp.model.Notification
+import com.example.smd_fyp.model.Review
 import com.example.smd_fyp.model.User
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -63,6 +66,55 @@ interface PhpApiService {
     
     @DELETE("users.php")
     suspend fun deleteUser(@Query("id") id: String): Response<ResponseBody>
+    
+    // Reviews API
+    @GET("reviews.php")
+    suspend fun getReviews(@Query("groundId") groundId: String? = null, @Query("userId") userId: String? = null): Response<List<Review>>
+    
+    @GET("reviews.php")
+    suspend fun getReview(@Query("id") id: String): Response<Review>
+    
+    @POST("reviews.php")
+    suspend fun createReview(@Body review: Review): Response<Review>
+    
+    @PUT("reviews.php")
+    suspend fun updateReview(@Body review: Review): Response<Review>
+    
+    @DELETE("reviews.php")
+    suspend fun deleteReview(@Query("id") id: String): Response<ResponseBody>
+    
+    // Notifications API
+    @GET("notifications.php")
+    suspend fun getNotifications(@Query("userId") userId: String? = null): Response<List<Notification>>
+    
+    @GET("notifications.php")
+    suspend fun getNotification(@Query("id") id: String): Response<Notification>
+    
+    @POST("notifications.php")
+    suspend fun createNotification(@Body notification: Notification): Response<Notification>
+    
+    @PUT("notifications.php")
+    suspend fun updateNotification(@Body notification: Notification): Response<Notification>
+    
+    @DELETE("notifications.php")
+    suspend fun deleteNotification(@Query("id") id: String): Response<ResponseBody>
+    
+    // FCM Token API
+    @POST("fcm_tokens.php")
+    suspend fun registerFCMToken(@Body tokenData: Map<String, String>): Response<ResponseBody>
+    
+    // Favorites API
+    @GET("favorites.php")
+    suspend fun getFavorites(@Query("userId") userId: String? = null): Response<List<Favorite>>
+    
+    @GET("favorites.php")
+    suspend fun getFavorite(@Query("id") id: String): Response<Favorite>
+    
+    @POST("favorites.php")
+    suspend fun createFavorite(@Body favorite: Favorite): Response<Favorite>
+    
+    @DELETE("favorites.php")
+    suspend fun deleteFavorite(@Query("id") id: String): Response<ResponseBody>
     
     // Image Upload API
     @Multipart

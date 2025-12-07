@@ -1,25 +1,35 @@
 package com.example.smd_fyp.player.fragments
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.smd_fyp.MyBookingsActivity
 import com.example.smd_fyp.R
+import com.example.smd_fyp.api.ApiClient
+import com.example.smd_fyp.database.LocalDatabaseHelper
+import com.example.smd_fyp.firebase.FirebaseAuthHelper
 import com.example.smd_fyp.model.Notification
 import com.example.smd_fyp.model.NotificationType
 import com.example.smd_fyp.player.HomeActivity
 import com.example.smd_fyp.player.adapter.NotificationAdapter
+import com.example.smd_fyp.sync.SyncManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class NotificationsFragment : Fragment() {
 
     private lateinit var rvNotifications: RecyclerView
     private lateinit var llEmptyState: LinearLayout
     private lateinit var adapter: NotificationAdapter
-    private val notifications = mutableListOf<Notification>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,9 +45,12 @@ class NotificationsFragment : Fragment() {
         rvNotifications = view.findViewById(R.id.rvNotifications)
         llEmptyState = view.findViewById(R.id.llEmptyState)
 
+        // Initialize database
+        LocalDatabaseHelper.initialize(requireContext())
+        
         // Setup RecyclerView
         rvNotifications.layoutManager = LinearLayoutManager(requireContext())
-        adapter = NotificationAdapter(notifications) { notification ->
+        adapter = NotificationAdapter(emptyList()) { notification ->
             // Handle notification click
             onNotificationClick(notification)
         }
@@ -61,70 +74,105 @@ class NotificationsFragment : Fragment() {
     }
 
     private fun loadNotifications() {
-        // TODO: Load notifications from data source/API
-        // For now, using mock data
-        notifications.clear()
-        notifications.addAll(getMockNotifications())
-        adapter.notifyDataSetChanged()
-        updateEmptyState()
-    }
-
-    private fun getMockNotifications(): List<Notification> {
-        return listOf(
-            Notification(
-                id = "1",
-                title = "Booking Confirmed",
-                message = "Your booking at Royal Football Club has been confirmed for tomorrow at 6:00 PM",
-                time = "2 hours ago",
-                isRead = false,
-                type = NotificationType.BOOKING
-            ),
-            Notification(
-                id = "2",
-                title = "Payment Received",
-                message = "Payment of Rs. 3,000 has been received for your booking",
-                time = "5 hours ago",
-                isRead = false,
-                type = NotificationType.PAYMENT
-            ),
-            Notification(
-                id = "3",
-                title = "Reminder",
-                message = "You have a booking at Green Valley Sports in 1 hour",
-                time = "1 day ago",
-                isRead = true,
-                type = NotificationType.REMINDER
-            ),
-            Notification(
-                id = "4",
-                title = "Booking Cancelled",
-                message = "Your booking at Royal Football Club has been cancelled",
-                time = "2 days ago",
-                isRead = true,
-                type = NotificationType.BOOKING
-            )
-        )
+        val currentUser = FirebaseAuthHelper.getCurrentUser()
+        val context = context ?: return
+        
+        if (currentUser == null) {
+            if (isAdded) {
+                updateEmptyState(emptyList())
+            }
+            return
+        }
+        
+        // Observe local database (offline support)
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                LocalDatabaseHelper.getNotificationsByUser(currentUser.uid)?.collect { localNotifications ->
+                    if (!isAdded) return@collect
+                    adapter.updateItems(localNotifications)
+                    updateEmptyState(localNotifications)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                if (isAdded) {
+                    updateEmptyState(emptyList())
+                }
+            }
+        }
+        
+        // Fetch from API if online
+        viewLifecycleOwner.lifecycleScope.launch {
+            val currentContext = context ?: return@launch
+            if (!isAdded) return@launch
+            
+            if (SyncManager.isOnline(currentContext)) {
+                try {
+                    val apiService = ApiClient.getPhpApiService(currentContext)
+                    val response = apiService.getNotifications(currentUser.uid)
+                    
+                    if (response.isSuccessful && response.body() != null) {
+                        val apiNotifications = response.body()!!
+                        
+                        // Save to local database
+                        withContext(Dispatchers.IO) {
+                            apiNotifications.forEach { notification ->
+                                LocalDatabaseHelper.saveNotification(notification.copy(synced = true))
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Don't show error, just use local data
+                }
+            }
+        }
     }
 
     private fun onNotificationClick(notification: Notification) {
         // Mark as read
         if (!notification.isRead) {
-            notification.isRead = true
-            adapter.notifyItemChanged(notifications.indexOf(notification))
-            updateEmptyState()
+            viewLifecycleOwner.lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    LocalDatabaseHelper.markNotificationAsRead(notification.id)
+                }
+            }
         }
 
-        // TODO: Navigate to relevant screen based on notification type
+        // Navigate to relevant screen based on notification type
+        when (notification.type) {
+            NotificationType.BOOKING -> {
+                // Navigate to bookings
+                val intent = Intent(requireContext(), MyBookingsActivity::class.java)
+                startActivity(intent)
+            }
+            NotificationType.PAYMENT -> {
+                // Navigate to bookings (payments are related to bookings)
+                val intent = Intent(requireContext(), MyBookingsActivity::class.java)
+                startActivity(intent)
+            }
+            NotificationType.REMINDER -> {
+                // Navigate to bookings
+                val intent = Intent(requireContext(), MyBookingsActivity::class.java)
+                startActivity(intent)
+            }
+            NotificationType.SYSTEM -> {
+                // Stay on current screen or navigate to home
+            }
+        }
     }
 
     private fun markAllAsRead() {
-        notifications.forEach { it.isRead = true }
-        adapter.notifyDataSetChanged()
-        updateEmptyState()
+        val currentUser = FirebaseAuthHelper.getCurrentUser()
+        if (currentUser == null) return
+        
+        viewLifecycleOwner.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                LocalDatabaseHelper.markAllNotificationsAsRead(currentUser.uid)
+            }
+        }
     }
 
-    private fun updateEmptyState() {
-        val hasUnread = notifications.any { !it.isRead }
+    private fun updateEmptyState(notifications: List<Notification>) {
         if (notifications.isEmpty()) {
             llEmptyState.visibility = View.VISIBLE
             rvNotifications.visibility = View.GONE

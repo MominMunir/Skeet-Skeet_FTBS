@@ -135,6 +135,16 @@
                     android:layout_marginBottom="16dp" />
 
                 <Button
+                    android:id="@+id/btnEditProfile"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Edit Profile"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:textColor="@color/text_primary"
+                    android:minHeight="48dp"
+                    android:layout_marginBottom="8dp" />
+
+                <Button
                     android:id="@+id/btnChangePassword"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

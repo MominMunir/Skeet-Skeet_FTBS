@@ -41,8 +41,12 @@ class GroundkeeperSettingsFragment : Fragment() {
         
         // Setup click listeners
         view.findViewById<View>(R.id.llEditProfile)?.setOnClickListener {
-            // TODO: Navigate to edit profile
-            Toast.makeText(requireContext(), "Edit Profile", Toast.LENGTH_SHORT).show()
+            // Navigate to edit profile fragment
+            val editProfileFragment = com.example.smd_fyp.fragments.EditProfileFragment()
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, editProfileFragment)
+                .addToBackStack("edit_profile")
+                .commit()
         }
         
         view.findViewById<View>(R.id.llPaymentSettings)?.setOnClickListener {

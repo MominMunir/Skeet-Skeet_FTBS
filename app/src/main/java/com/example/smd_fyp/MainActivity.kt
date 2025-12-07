@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.graphics.Matrix
 import android.widget.ImageView
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -53,8 +54,20 @@ class MainActivity : AppCompatActivity() {
         // Navigate to AuthActivity when user taps Get Started
         findViewById<android.view.View>(R.id.btnGetStarted)?.setOnClickListener {
             startActivity(Intent(this, AuthActivity::class.java))
-            // Optional: finish splash so Back won’t return here
+            // Optional: finish splash so Back won't return here
             finish()
         }
+
+        // Setup back button handling - exit app on splash screen
+        setupBackPressHandler()
+    }
+
+    private fun setupBackPressHandler() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Exit app when back is pressed on splash screen
+                finish()
+            }
+        })
     }
 }

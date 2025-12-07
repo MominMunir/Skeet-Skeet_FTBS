@@ -165,14 +165,25 @@ class EditProfileFragment : Fragment() {
             val bitmap = BitmapFactory.decodeStream(inputStream)
             inputStream?.close()
             
-            ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
-            ivProfilePicture.setImageBitmap(bitmap)
-            
-            // Save image URI to preferences
-            sharedPreferences.edit().putString("profile_image_uri", uri.toString()).apply()
+            if (bitmap != null) {
+                ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
+                ivProfilePicture.setImageBitmap(bitmap)
+                
+                // Save image URI to preferences with current user's email for verification
+                val currentEmail = sharedPreferences.getString("email", null)
+                sharedPreferences.edit()
+                    .putString("profile_image_uri", uri.toString())
+                    .putString("profile_image_email", currentEmail)
+                    .apply()
+            } else {
+                ivProfilePicture.setImageResource(R.drawable.ic_person)
+            }
         } catch (e: FileNotFoundException) {
             e.printStackTrace()
-            Toast.makeText(requireContext(), "Error loading image", Toast.LENGTH_SHORT).show()
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
         }
     }
 
@@ -180,10 +191,21 @@ class EditProfileFragment : Fragment() {
         try {
             val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
             val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-            ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
-            ivProfilePicture.setImageBitmap(bitmap)
+            if (bitmap != null) {
+                ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
+                ivProfilePicture.setImageBitmap(bitmap)
+                
+                // Save email for verification
+                val currentEmail = sharedPreferences.getString("email", null)
+                sharedPreferences.edit()
+                    .putString("profile_image_email", currentEmail)
+                    .apply()
+            } else {
+                ivProfilePicture.setImageResource(R.drawable.ic_person)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
         }
     }
 
@@ -294,7 +316,16 @@ class EditProfileFragment : Fragment() {
         tvGender.text = sharedPreferences.getString("gender", "Select Gender")
         etLocation.setText(sharedPreferences.getString("location", ""))
 
-        // Load profile image
+        // Load profile image - only if it belongs to current user
+        val currentEmail = sharedPreferences.getString("email", null)
+        val storedEmailForImage = sharedPreferences.getString("profile_image_email", null)
+        
+        // If emails don't match or no email stored, show default icon
+        if (currentEmail == null || storedEmailForImage != currentEmail) {
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
+            return
+        }
+        
         val imageUriString = sharedPreferences.getString("profile_image_uri", null)
         val imageBase64 = sharedPreferences.getString("profile_image_base64", null)
         
@@ -308,10 +339,14 @@ class EditProfileFragment : Fragment() {
                 // Fallback to base64 if URI fails
                 if (imageBase64 != null) {
                     loadImageFromBase64(imageBase64)
+                } else {
+                    ivProfilePicture.setImageResource(R.drawable.ic_person)
                 }
             }
         } else if (imageBase64 != null) {
             loadImageFromBase64(imageBase64)
+        } else {
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
         }
     }
 

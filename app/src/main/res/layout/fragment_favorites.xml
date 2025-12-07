@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/input_background"
@@ -30,9 +29,10 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tvFavoriteCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="2 favorites"
+                android:text="0 favorites"
                 android:textColor="@color/text_secondary"
                 android:textSize="12sp"
                 android:background="@drawable/bg_counter_pill"
@@ -40,113 +40,39 @@
                 android:paddingVertical="4dp" />
         </LinearLayout>
 
-        <!-- Favorite Card 1 -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/cardFavorite1"
+        <!-- Favorites List -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvFavorites"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/white"
-            android:clickable="true"
-            android:focusable="true">
+            android:nestedScrollingEnabled="false" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Royal Football Club"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="DHA Phase 5"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp" />
-                </LinearLayout>
-
-                <ImageView
-                    android:id="@+id/ivHeart1"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_heart"
-                    android:contentDescription="Remove from favorites"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="4dp" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- Favorite Card 2 -->
-        <androidx.cardview.widget.CardView
-            android:id="@+id/cardFavorite2"
+        <!-- Empty State -->
+        <LinearLayout
+            android:id="@+id/llEmptyState"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/white"
-            android:clickable="true"
-            android:focusable="true">
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="48dp"
+            android:visibility="gone">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_heart_outline"
+                app:tint="@color/text_secondary"
+                android:contentDescription="No favorites"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Green Valley Sports"
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Johar Town"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp" />
-                </LinearLayout>
-
-                <ImageView
-                    android:id="@+id/ivHeart2"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_heart"
-                    android:contentDescription="Remove from favorites"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="4dp" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+                android:text="No favorite grounds yet"
+                android:textSize="16sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center" />
+        </LinearLayout>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
 

@@ -39,8 +39,22 @@ class AdminSettingsFragment : Fragment() {
             // Handle auto-approve bookings toggle
         }
         
+        view.findViewById<View>(R.id.btnEditProfile)?.setOnClickListener {
+            // Navigate to edit profile fragment
+            val editProfileFragment = com.example.smd_fyp.fragments.EditProfileFragment()
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, editProfileFragment)
+                .addToBackStack("edit_profile")
+                .commit()
+        }
+        
         view.findViewById<View>(R.id.btnChangePassword)?.setOnClickListener {
-            // Handle change password
+            // Navigate to edit profile fragment where password change is available
+            val editProfileFragment = com.example.smd_fyp.fragments.EditProfileFragment()
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, editProfileFragment)
+                .addToBackStack("edit_profile")
+                .commit()
         }
 
         view.findViewById<View>(R.id.btnLogout)?.setOnClickListener {
@@ -48,6 +62,6 @@ class AdminSettingsFragment : Fragment() {
             startActivity(Intent(requireContext(), AuthActivity::class.java))
             requireActivity().finish()
         }
-        }
+    }
 }
 

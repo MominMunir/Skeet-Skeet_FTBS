@@ -121,7 +121,7 @@ class UserProfileActivity : AppCompatActivity() {
         ivProfileIcon = findViewById(R.id.ivProfileIcon)
         
         // Back button
-        findViewById<ImageButton>(R.id.btnBack)?.setOnClickListener {
+        findViewById<View>(R.id.llBack)?.setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
         
@@ -216,14 +216,20 @@ class UserProfileActivity : AppCompatActivity() {
                         
                         // Load profile image
                         it.profileImageUrl?.let { imageUrl ->
-                            // Normalize URL to use correct IP
-                            val normalizedUrl = ApiClient.normalizeImageUrl(this@UserProfileActivity, imageUrl)
-                            android.util.Log.d("UserProfile", "Loading profile image from URL: $normalizedUrl (original: $imageUrl)")
-                            loadImageWithGlide(normalizedUrl)
+                            if (imageUrl.isNotBlank()) {
+                                // Normalize URL to use correct IP
+                                val normalizedUrl = ApiClient.normalizeImageUrl(this@UserProfileActivity, imageUrl)
+                                android.util.Log.d("UserProfile", "Loading profile image from URL: $normalizedUrl (original: $imageUrl)")
+                                loadImageWithGlide(normalizedUrl)
+                            } else {
+                                // Empty or blank URL, show default icon
+                                android.util.Log.d("UserProfile", "Profile image URL is empty, showing default icon")
+                                ivProfileIcon.setImageResource(R.drawable.ic_person)
+                            }
                         } ?: run {
-                            android.util.Log.d("UserProfile", "No profile image URL, loading from preferences")
-                            // Fallback to SharedPreferences
-                            loadProfileImageFromPreferences()
+                            // No profile image URL, show default icon
+                            android.util.Log.d("UserProfile", "No profile image URL, showing default icon")
+                            ivProfileIcon.setImageResource(R.drawable.ic_person)
                         }
                     } ?: run {
                         // Fallback to SharedPreferences
@@ -250,11 +256,23 @@ class UserProfileActivity : AppCompatActivity() {
     }
     
     private fun loadProfileImageFromPreferences() {
+        // Only load from SharedPreferences if we can verify it belongs to the current user
+        // Check if the stored email matches the current user's email
+        val currentEmail = sharedPreferences.getString("email", null)
+        val storedEmailForImage = sharedPreferences.getString("profile_image_email", null)
+        
+        // If emails don't match or no email stored, show default icon
+        if (currentEmail == null || storedEmailForImage != currentEmail) {
+            android.util.Log.d("UserProfile", "Profile image in preferences doesn't belong to current user, showing default icon")
+            ivProfileIcon.setImageResource(R.drawable.ic_person)
+            return
+        }
+        
         val imageUriString = sharedPreferences.getString("profile_image_uri", null)
         val imageBase64 = sharedPreferences.getString("profile_image_base64", null)
         val imageUrl = sharedPreferences.getString("profile_image_url", null)
         
-        if (imageUrl != null) {
+        if (imageUrl != null && imageUrl.isNotBlank()) {
             // Normalize URL to use correct IP
             val normalizedUrl = ApiClient.normalizeImageUrl(this, imageUrl)
             android.util.Log.d("UserProfile", "Loading image from SharedPreferences URL: $normalizedUrl (original: $imageUrl)")
@@ -268,10 +286,15 @@ class UserProfileActivity : AppCompatActivity() {
                 e.printStackTrace()
                 if (imageBase64 != null) {
                     loadImageFromBase64(imageBase64)
+                } else {
+                    ivProfileIcon.setImageResource(R.drawable.ic_person)
                 }
             }
         } else if (imageBase64 != null) {
             loadImageFromBase64(imageBase64)
+        } else {
+            // No image found, show default icon
+            ivProfileIcon.setImageResource(R.drawable.ic_person)
         }
     }
     
@@ -309,14 +332,25 @@ class UserProfileActivity : AppCompatActivity() {
             val bitmap = BitmapFactory.decodeStream(inputStream)
             inputStream?.close()
             
-            ivProfileIcon.scaleType = ImageView.ScaleType.CENTER_CROP
-            ivProfileIcon.setImageBitmap(bitmap)
-            
-            // Save image URI to preferences
-            sharedPreferences.edit().putString("profile_image_uri", uri.toString()).apply()
+            if (bitmap != null) {
+                ivProfileIcon.scaleType = ImageView.ScaleType.CENTER_CROP
+                ivProfileIcon.setImageBitmap(bitmap)
+                
+                // Save image URI to preferences with current user's email for verification
+                val currentEmail = sharedPreferences.getString("email", null)
+                sharedPreferences.edit()
+                    .putString("profile_image_uri", uri.toString())
+                    .putString("profile_image_email", currentEmail)
+                    .apply()
+            } else {
+                ivProfileIcon.setImageResource(R.drawable.ic_person)
+            }
         } catch (e: FileNotFoundException) {
             e.printStackTrace()
-            Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show()
+            ivProfileIcon.setImageResource(R.drawable.ic_person)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ivProfileIcon.setImageResource(R.drawable.ic_person)
         }
     }
 
@@ -324,10 +358,21 @@ class UserProfileActivity : AppCompatActivity() {
         try {
             val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
             val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-            ivProfileIcon.scaleType = ImageView.ScaleType.CENTER_CROP
-            ivProfileIcon.setImageBitmap(bitmap)
+            if (bitmap != null) {
+                ivProfileIcon.scaleType = ImageView.ScaleType.CENTER_CROP
+                ivProfileIcon.setImageBitmap(bitmap)
+                
+                // Save email for verification
+                val currentEmail = sharedPreferences.getString("email", null)
+                sharedPreferences.edit()
+                    .putString("profile_image_email", currentEmail)
+                    .apply()
+            } else {
+                ivProfileIcon.setImageResource(R.drawable.ic_person)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
+            ivProfileIcon.setImageResource(R.drawable.ic_person)
         }
     }
 

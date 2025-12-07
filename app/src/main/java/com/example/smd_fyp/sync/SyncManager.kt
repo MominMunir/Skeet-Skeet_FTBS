@@ -7,7 +7,10 @@ import com.example.smd_fyp.api.ApiClient
 import com.example.smd_fyp.database.LocalDatabaseHelper
 import com.example.smd_fyp.firebase.FirestoreHelper
 import com.example.smd_fyp.model.Booking
+import com.example.smd_fyp.model.Favorite
 import com.example.smd_fyp.model.GroundApi
+import com.example.smd_fyp.model.Notification
+import com.example.smd_fyp.model.Review
 import com.example.smd_fyp.model.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -550,6 +553,233 @@ object SyncManager {
             }
             
             phpResult
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Sync review data
+     * First saves to local SQLite (works offline), then syncs to PHP API when online
+     */
+    suspend fun syncReview(context: Context, review: Review): Result<Review> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            // First, save to local SQLite database (works offline)
+            LocalDatabaseHelper.saveReview(review.copy(synced = false))
+            
+            // If offline, just return success (data is saved locally)
+            if (!isOnline(context)) {
+                return@withContext Result.success(review)
+            }
+            
+            // Try PHP API
+            val phpResult = try {
+                val apiService = ApiClient.getPhpApiService(context)
+                
+                // Check if review exists in PHP by trying to get it
+                var reviewExists = false
+                if (review.id.isNotEmpty()) {
+                    try {
+                        val existingReviewResponse = apiService.getReview(review.id)
+                        reviewExists = existingReviewResponse.isSuccessful && existingReviewResponse.body() != null
+                    } catch (e: Exception) {
+                        android.util.Log.d("SyncManager", "Could not check if review exists, will try to create: ${e.message}")
+                        reviewExists = false
+                    }
+                }
+                
+                // If review exists in PHP, update it; otherwise create it
+                val response = if (reviewExists) {
+                    android.util.Log.d("SyncManager", "Review exists in PHP, updating: ${review.id}")
+                    apiService.updateReview(review)
+                } else {
+                    android.util.Log.d("SyncManager", "Review doesn't exist in PHP, creating: ${review.id}")
+                    apiService.createReview(review)
+                }
+                
+                if (response.isSuccessful && response.body() != null) {
+                    android.util.Log.d("SyncManager", "Successfully synced review to PHP: ${response.body()!!.id}")
+                    Result.success(response.body()!!)
+                } else {
+                    val errorBody = try {
+                        response.errorBody()?.string() ?: "Unknown error"
+                    } catch (e: Exception) {
+                        "Could not read error body: ${e.message}"
+                    }
+                    android.util.Log.e("SyncManager", "PHP API failed: ${response.code()} - $errorBody")
+                    Result.failure(Exception("PHP API failed: ${response.code()} - $errorBody"))
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SyncManager", "PHP API exception: ${e.message}", e)
+                Result.failure(Exception("PHP API error: ${e.message}", e))
+            }
+            
+            // Update local SQLite with synced status if PHP sync succeeded
+            if (phpResult.isSuccess) {
+                val syncedReview = phpResult.getOrNull() ?: review
+                LocalDatabaseHelper.saveReview(syncedReview.copy(synced = true))
+                
+                // Also update ground rating after syncing review
+                LocalDatabaseHelper.updateGroundRating(review.groundId)
+            }
+            
+            phpResult
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Sync notification data
+     * First saves to local SQLite (works offline), then syncs to PHP API when online
+     */
+    suspend fun syncNotification(context: Context, notification: Notification): Result<Notification> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            // First, save to local SQLite database (works offline)
+            LocalDatabaseHelper.saveNotification(notification.copy(synced = false))
+            
+            // If offline, just return success (data is saved locally)
+            if (!isOnline(context)) {
+                return@withContext Result.success(notification)
+            }
+            
+            // Try PHP API
+            val phpResult = try {
+                val apiService = ApiClient.getPhpApiService(context)
+                
+                // Check if notification exists in PHP by trying to get it
+                var notificationExists = false
+                if (notification.id.isNotEmpty()) {
+                    try {
+                        val existingNotificationResponse = apiService.getNotification(notification.id)
+                        notificationExists = existingNotificationResponse.isSuccessful && existingNotificationResponse.body() != null
+                    } catch (e: Exception) {
+                        android.util.Log.d("SyncManager", "Could not check if notification exists, will try to create: ${e.message}")
+                        notificationExists = false
+                    }
+                }
+                
+                // If notification exists in PHP, update it; otherwise create it
+                val response = if (notificationExists) {
+                    android.util.Log.d("SyncManager", "Notification exists in PHP, updating: ${notification.id}")
+                    apiService.updateNotification(notification)
+                } else {
+                    android.util.Log.d("SyncManager", "Notification doesn't exist in PHP, creating: ${notification.id}")
+                    apiService.createNotification(notification)
+                }
+                
+                if (response.isSuccessful && response.body() != null) {
+                    android.util.Log.d("SyncManager", "Successfully synced notification to PHP: ${response.body()!!.id}")
+                    Result.success(response.body()!!)
+                } else {
+                    val errorBody = try {
+                        response.errorBody()?.string() ?: "Unknown error"
+                    } catch (e: Exception) {
+                        "Could not read error body: ${e.message}"
+                    }
+                    android.util.Log.e("SyncManager", "PHP API failed: ${response.code()} - $errorBody")
+                    Result.failure(Exception("PHP API failed: ${response.code()} - $errorBody"))
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SyncManager", "PHP API exception: ${e.message}", e)
+                Result.failure(Exception("PHP API error: ${e.message}", e))
+            }
+            
+            // Update local SQLite with synced status if PHP sync succeeded
+            if (phpResult.isSuccess) {
+                val syncedNotification = phpResult.getOrNull() ?: notification
+                LocalDatabaseHelper.saveNotification(syncedNotification.copy(synced = true))
+            }
+            
+            phpResult
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Sync favorite data
+     * First saves to local SQLite (works offline), then syncs to PHP API when online
+     */
+    suspend fun syncFavorite(context: Context, favorite: Favorite): Result<Favorite> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            // First, save to local SQLite database (works offline)
+            LocalDatabaseHelper.addFavorite(favorite.copy(synced = false))
+            
+            // If offline, just return success (data is saved locally)
+            if (!isOnline(context)) {
+                return@withContext Result.success(favorite)
+            }
+            
+            // Try PHP API
+            val phpResult = try {
+                val apiService = ApiClient.getPhpApiService(context)
+                val response = apiService.createFavorite(favorite)
+                
+                if (response.isSuccessful && response.body() != null) {
+                    android.util.Log.d("SyncManager", "Successfully synced favorite to PHP: ${response.body()!!.id}")
+                    Result.success(response.body()!!)
+                } else {
+                    val errorBody = try {
+                        response.errorBody()?.string() ?: "Unknown error"
+                    } catch (e: Exception) {
+                        "Could not read error body: ${e.message}"
+                    }
+                    android.util.Log.e("SyncManager", "PHP API failed: ${response.code()} - $errorBody")
+                    Result.failure(Exception("PHP API failed: ${response.code()} - $errorBody"))
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SyncManager", "PHP API exception: ${e.message}", e)
+                Result.failure(Exception("PHP API error: ${e.message}", e))
+            }
+            
+            // Update local SQLite with synced status if PHP sync succeeded
+            if (phpResult.isSuccess) {
+                val syncedFavorite = phpResult.getOrNull() ?: favorite
+                LocalDatabaseHelper.addFavorite(syncedFavorite.copy(synced = true))
+            }
+            
+            phpResult
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Delete favorite from server
+     */
+    suspend fun deleteFavorite(context: Context, userId: String, groundId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        return@withContext try {
+            // Remove from local database first
+            LocalDatabaseHelper.removeFavorite(userId, groundId)
+            
+            // If offline, just return success
+            if (!isOnline(context)) {
+                return@withContext Result.success(Unit)
+            }
+            
+            // Try PHP API
+            try {
+                val apiService = ApiClient.getPhpApiService(context)
+                val favoriteId = Favorite.createId(userId, groundId)
+                val response = apiService.deleteFavorite(favoriteId)
+                
+                if (response.isSuccessful) {
+                    android.util.Log.d("SyncManager", "Successfully deleted favorite from PHP: $favoriteId")
+                    Result.success(Unit)
+                } else {
+                    val errorBody = try {
+                        response.errorBody()?.string() ?: "Unknown error"
+                    } catch (e: Exception) {
+                        "Could not read error body: ${e.message}"
+                    }
+                    android.util.Log.e("SyncManager", "PHP API failed: ${response.code()} - $errorBody")
+                    Result.failure(Exception("PHP API failed: ${response.code()} - $errorBody"))
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("SyncManager", "PHP API exception: ${e.message}", e)
+                Result.failure(Exception("PHP API error: ${e.message}", e))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }

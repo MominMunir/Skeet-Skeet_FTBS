@@ -51,9 +51,6 @@ class MyBookingsActivity : AppCompatActivity() {
 
         // Setup back button handling
         setupBackPressHandler()
-
-        // Setup booking card click listeners
-        setupBookingCards()
     }
 
     private fun loadDrawerProfileData() {
@@ -105,25 +102,6 @@ class MyBookingsActivity : AppCompatActivity() {
         findViewById<View>(R.id.menuLogout)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
             showLogoutDialog()
-        }
-    }
-
-    private fun setupBookingCards() {
-        // Receipt buttons
-        findViewById<View>(R.id.btnReceipt1)?.setOnClickListener {
-            // TODO: Show receipt
-            Toast.makeText(this, "Receipt", Toast.LENGTH_SHORT).show()
-        }
-        
-        findViewById<View>(R.id.btnReceipt2)?.setOnClickListener {
-            // TODO: Show receipt
-            Toast.makeText(this, "Receipt", Toast.LENGTH_SHORT).show()
-        }
-        
-        // Review button
-        findViewById<View>(R.id.btnReview1)?.setOnClickListener {
-            // TODO: Show review dialog
-            Toast.makeText(this, "Review", Toast.LENGTH_SHORT).show()
         }
     }
 

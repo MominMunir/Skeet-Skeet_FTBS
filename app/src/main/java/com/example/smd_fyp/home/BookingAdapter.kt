@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.smd_fyp.R
 import com.example.smd_fyp.model.Booking
@@ -44,11 +45,20 @@ class BookingAdapter(
         // Set status background color
         val statusBg = when (item.status) {
             BookingStatus.CONFIRMED -> R.drawable.bg_status_confirmed
-            BookingStatus.PENDING -> R.drawable.bg_status_confirmed // Use same for now
-            BookingStatus.CANCELLED -> R.drawable.bg_status_confirmed // Use same for now
-            BookingStatus.COMPLETED -> R.drawable.bg_status_confirmed // Use same for now
+            BookingStatus.PENDING -> R.drawable.bg_status_pending
+            BookingStatus.CANCELLED -> R.drawable.bg_status_confirmed // Use confirmed style for now
+            BookingStatus.COMPLETED -> R.drawable.bg_status_confirmed
         }
         holder.tvStatus.setBackgroundResource(statusBg)
+        
+        // Set status text color based on status
+        val statusTextColor = when (item.status) {
+            BookingStatus.CONFIRMED -> ContextCompat.getColor(holder.itemView.context, R.color.green_600)
+            BookingStatus.PENDING -> ContextCompat.getColor(holder.itemView.context, R.color.yellow_600)
+            BookingStatus.CANCELLED -> ContextCompat.getColor(holder.itemView.context, R.color.text_secondary)
+            BookingStatus.COMPLETED -> ContextCompat.getColor(holder.itemView.context, R.color.green_600)
+        }
+        holder.tvStatus.setTextColor(statusTextColor)
         
         // Handle button clicks
         holder.btnReceipt.setOnClickListener {

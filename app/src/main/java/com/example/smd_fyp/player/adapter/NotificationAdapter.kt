@@ -11,7 +11,7 @@ import com.example.smd_fyp.model.Notification
 import com.example.smd_fyp.model.NotificationType
 
 class NotificationAdapter(
-    private val notifications: List<Notification>,
+    private var notifications: List<Notification>,
     private val onItemClick: (Notification) -> Unit
 ) : RecyclerView.Adapter<NotificationAdapter.ViewHolder>() {
 
@@ -34,7 +34,7 @@ class NotificationAdapter(
 
         holder.tvTitle.text = notification.title
         holder.tvMessage.text = notification.message
-        holder.tvTime.text = notification.time
+        holder.tvTime.text = notification.getFormattedTime()
 
         // Set icon based on notification type
         val iconRes = when (notification.type) {
@@ -55,6 +55,11 @@ class NotificationAdapter(
     }
 
     override fun getItemCount(): Int = notifications.size
+    
+    fun updateItems(newItems: List<Notification>) {
+        notifications = newItems
+        notifyDataSetChanged()
+    }
 }
 
 

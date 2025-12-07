@@ -14,6 +14,7 @@ class GroundkeeperGroundAdapter(
     private var items: MutableList<GroundApi> = mutableListOf(),
     private val onViewClick: ((GroundApi) -> Unit)? = null,
     private val onEditClick: ((GroundApi) -> Unit)? = null,
+    private val onDeleteClick: ((GroundApi) -> Unit)? = null,
     private val onStatusToggle: ((GroundApi, Boolean) -> Unit)? = null
 ) : RecyclerView.Adapter<GroundkeeperGroundAdapter.VH>() {
 
@@ -25,6 +26,7 @@ class GroundkeeperGroundAdapter(
         val switchStatus: Switch = itemView.findViewById(R.id.switchStatus)
         val btnView: ImageButton = itemView.findViewById(R.id.btnView)
         val btnEdit: ImageButton = itemView.findViewById(R.id.btnEdit)
+        val btnDelete: ImageButton = itemView.findViewById(R.id.btnDelete)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -54,6 +56,10 @@ class GroundkeeperGroundAdapter(
         
         holder.btnEdit.setOnClickListener {
             onEditClick?.invoke(item)
+        }
+        
+        holder.btnDelete.setOnClickListener {
+            onDeleteClick?.invoke(item)
         }
     }
 

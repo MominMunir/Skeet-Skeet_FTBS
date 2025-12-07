@@ -53,7 +53,19 @@ class GroundkeeperMyGroundsFragment : Fragment() {
                 Toast.makeText(requireContext(), "View: ${ground.name}", Toast.LENGTH_SHORT).show()
             },
             onEditClick = { ground ->
-                Toast.makeText(requireContext(), "Edit: ${ground.name}", Toast.LENGTH_SHORT).show()
+                // Navigate to edit ground fragment
+                val editFragment = com.example.smd_fyp.fragments.GroundkeeperEditGroundFragment().apply {
+                    arguments = Bundle().apply {
+                        putString("ground_id", ground.id)
+                    }
+                }
+                requireActivity().supportFragmentManager.beginTransaction()
+                    .replace(R.id.fragmentContainer, editFragment)
+                    .addToBackStack("edit_ground")
+                    .commit()
+            },
+            onDeleteClick = { ground ->
+                showDeleteConfirmation(ground)
             },
             onStatusToggle = { ground, isChecked ->
                 updateGroundStatus(ground, isChecked)
@@ -63,9 +75,12 @@ class GroundkeeperMyGroundsFragment : Fragment() {
         
         // Setup Add Ground button
         view.findViewById<View>(R.id.btnAddGround)?.setOnClickListener {
-            // Navigate to add ground screen
-            // TODO: Navigate to AdminAddGroundFragment or similar
-            Toast.makeText(requireContext(), "Add Ground", Toast.LENGTH_SHORT).show()
+            // Navigate to add ground fragment
+            val addGroundFragment = com.example.smd_fyp.fragments.GroundkeeperAddGroundFragment()
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, addGroundFragment)
+                .addToBackStack("add_ground")
+                .commit()
         }
         
         // Load grounds from API
@@ -114,8 +129,11 @@ class GroundkeeperMyGroundsFragment : Fragment() {
     }
     
     private fun updateGroundStatus(ground: GroundApi, isAvailable: Boolean) {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
+                val context = this@GroundkeeperMyGroundsFragment.context ?: return@launch
+                if (!isAdded) return@launch
+                
                 val updatedGround = ground.copy(available = isAvailable)
                 
                 // Update in local database
@@ -124,12 +142,58 @@ class GroundkeeperMyGroundsFragment : Fragment() {
                 }
                 
                 // Sync to API
-                if (SyncManager.isOnline(requireContext())) {
-                    SyncManager.syncGround(requireContext(), updatedGround)
+                if (SyncManager.isOnline(context)) {
+                    SyncManager.syncGround(context, updatedGround)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(requireContext(), "Error updating ground status", Toast.LENGTH_SHORT).show()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "Error updating ground status", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+    
+    private fun showDeleteConfirmation(ground: GroundApi) {
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Delete Ground")
+            .setMessage("Are you sure you want to delete ${ground.name}? This action cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                deleteGround(ground)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun deleteGround(ground: GroundApi) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val context = this@GroundkeeperMyGroundsFragment.context ?: return@launch
+                if (!isAdded) return@launch
+                
+                // Delete using SyncManager
+                val result = withContext(Dispatchers.IO) {
+                    SyncManager.deleteGround(context, ground.id)
+                }
+                
+                withContext(Dispatchers.Main) {
+                    if (isAdded) {
+                        if (result.isSuccess) {
+                            Toast.makeText(context, "Ground deleted successfully", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Error deleting ground: ${result.exceptionOrNull()?.message}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                if (isAdded) {
+                    Toast.makeText(requireContext(), "Error deleting ground: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

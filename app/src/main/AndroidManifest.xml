@@ -52,6 +52,15 @@
         <activity
             android:name=".GroundkeeperDashboardActivity"
             android:exported="false" />
+        <activity
+            android:name=".GroundDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".BookingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ReceiptActivity"
+            android:exported="false" />
             
         <!-- Firebase Cloud Messaging default notification channel -->
         <meta-data

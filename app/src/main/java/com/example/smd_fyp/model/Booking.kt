@@ -18,6 +18,7 @@ data class Booking(
     val status: BookingStatus = BookingStatus.PENDING,
     val paymentId: String? = null,
     val paymentStatus: PaymentStatus = PaymentStatus.PENDING,
+    val paymentMethod: String? = null, // "on_site", "easypaisa", "card"
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val synced: Boolean = false // For offline sync

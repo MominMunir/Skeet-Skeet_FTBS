@@ -2,6 +2,7 @@ package com.example.smd_fyp.database
 
 import androidx.room.TypeConverter
 import com.example.smd_fyp.model.BookingStatus
+import com.example.smd_fyp.model.NotificationType
 import com.example.smd_fyp.model.PaymentStatus
 import com.example.smd_fyp.model.UserRole
 
@@ -34,5 +35,15 @@ class Converters {
     @TypeConverter
     fun toUserRole(role: String): UserRole {
         return UserRole.valueOf(role)
+    }
+    
+    @TypeConverter
+    fun fromNotificationType(type: NotificationType): String {
+        return type.name
+    }
+    
+    @TypeConverter
+    fun toNotificationType(type: String): NotificationType {
+        return NotificationType.valueOf(type)
     }
 }

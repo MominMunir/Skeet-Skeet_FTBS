@@ -184,18 +184,29 @@ class EditProfileFragment : Fragment() {
             val bitmap = BitmapFactory.decodeStream(inputStream)
             inputStream?.close()
             
-            ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
-            ivProfilePicture.setImageBitmap(bitmap)
-            
-            // Mark that a new image was selected
-            isNewImageSelected = true
-            uploadedImageUrl = null // Clear previous URL so it will be uploaded
-            
-            // Save image URI to preferences
-            sharedPreferences.edit().putString("profile_image_uri", uri.toString()).apply()
+            if (bitmap != null) {
+                ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
+                ivProfilePicture.setImageBitmap(bitmap)
+                
+                // Mark that a new image was selected
+                isNewImageSelected = true
+                uploadedImageUrl = null // Clear previous URL so it will be uploaded
+                
+                // Save image URI to preferences with current user's email for verification
+                val currentEmail = sharedPreferences.getString("email", null)
+                sharedPreferences.edit()
+                    .putString("profile_image_uri", uri.toString())
+                    .putString("profile_image_email", currentEmail)
+                    .apply()
+            } else {
+                ivProfilePicture.setImageResource(R.drawable.ic_person)
+            }
         } catch (e: FileNotFoundException) {
             e.printStackTrace()
-            Toast.makeText(requireContext(), "Error loading image", Toast.LENGTH_SHORT).show()
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
         }
     }
 
@@ -203,10 +214,21 @@ class EditProfileFragment : Fragment() {
         try {
             val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
             val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-            ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
-            ivProfilePicture.setImageBitmap(bitmap)
+            if (bitmap != null) {
+                ivProfilePicture.scaleType = ImageView.ScaleType.CENTER_CROP
+                ivProfilePicture.setImageBitmap(bitmap)
+                
+                // Save email for verification
+                val currentEmail = sharedPreferences.getString("email", null)
+                sharedPreferences.edit()
+                    .putString("profile_image_email", currentEmail)
+                    .apply()
+            } else {
+                ivProfilePicture.setImageResource(R.drawable.ic_person)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
         }
     }
 
@@ -396,17 +418,24 @@ class EditProfileFragment : Fragment() {
                         
                         // Load profile image
                         user.profileImageUrl?.let { imageUrl ->
-                            // Normalize URL to use correct IP
-                            val normalizedUrl = ApiClient.normalizeImageUrl(requireContext(), imageUrl)
-                            uploadedImageUrl = normalizedUrl
-                            isNewImageSelected = false
-                            android.util.Log.d("EditProfile", "Loading profile image from URL: $normalizedUrl (original: $imageUrl)")
-                            loadImageWithGlide(normalizedUrl)
+                            if (imageUrl.isNotBlank()) {
+                                // Normalize URL to use correct IP
+                                val normalizedUrl = ApiClient.normalizeImageUrl(requireContext(), imageUrl)
+                                uploadedImageUrl = normalizedUrl
+                                isNewImageSelected = false
+                                android.util.Log.d("EditProfile", "Loading profile image from URL: $normalizedUrl (original: $imageUrl)")
+                                loadImageWithGlide(normalizedUrl)
+                            } else {
+                                // Empty or blank URL, show default icon
+                                uploadedImageUrl = null
+                                isNewImageSelected = false
+                                ivProfilePicture.setImageResource(R.drawable.ic_person)
+                            }
                         } ?: run {
-                            // Fallback to SharedPreferences
+                            // No profile image URL, show default icon
                             uploadedImageUrl = null
                             isNewImageSelected = false
-                            loadProfileImageFromPreferences()
+                            ivProfilePicture.setImageResource(R.drawable.ic_person)
                         }
                     } ?: run {
                         // Fallback to SharedPreferences if user not found
@@ -432,6 +461,16 @@ class EditProfileFragment : Fragment() {
     }
     
     private fun loadProfileImageFromPreferences() {
+        // Only load from SharedPreferences if we can verify it belongs to the current user
+        val currentEmail = sharedPreferences.getString("email", null)
+        val storedEmailForImage = sharedPreferences.getString("profile_image_email", null)
+        
+        // If emails don't match or no email stored, show default icon
+        if (currentEmail == null || storedEmailForImage != currentEmail) {
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
+            return
+        }
+        
         val imageUriString = sharedPreferences.getString("profile_image_uri", null)
         val imageBase64 = sharedPreferences.getString("profile_image_base64", null)
         
@@ -444,10 +483,14 @@ class EditProfileFragment : Fragment() {
                 e.printStackTrace()
                 if (imageBase64 != null) {
                     loadImageFromBase64(imageBase64)
+                } else {
+                    ivProfilePicture.setImageResource(R.drawable.ic_person)
                 }
             }
         } else if (imageBase64 != null) {
             loadImageFromBase64(imageBase64)
+        } else {
+            ivProfilePicture.setImageResource(R.drawable.ic_person)
         }
     }
 
@@ -578,12 +621,15 @@ class EditProfileFragment : Fragment() {
                                 }
                             }
                             
-                            // Update parent activity
+                            // Update parent activity if it has refreshProfileData method
                             try {
-                                val activity = requireActivity() as? com.example.smd_fyp.UserProfileActivity
-                                activity?.refreshProfileData()
+                                val activity = requireActivity()
+                                // Try to call refreshProfileData if the activity has this method
+                                val method = activity.javaClass.getMethod("refreshProfileData")
+                                method.invoke(activity)
                             } catch (e: Exception) {
-                                e.printStackTrace()
+                                // Activity doesn't have refreshProfileData method, which is fine
+                                // This works for AdminDashboardActivity, GroundkeeperDashboardActivity, etc.
                             }
                             
                             val message = if (emailChanged) {

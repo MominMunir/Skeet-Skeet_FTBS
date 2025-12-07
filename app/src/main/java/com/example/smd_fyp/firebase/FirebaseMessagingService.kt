@@ -10,56 +10,125 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.example.smd_fyp.MainActivity
 import com.example.smd_fyp.R
+import com.example.smd_fyp.database.LocalDatabaseHelper
+import com.example.smd_fyp.model.Notification
+import com.example.smd_fyp.model.NotificationType
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import java.util.UUID
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
+        // Initialize database
+        LocalDatabaseHelper.initialize(this)
+
         // Check if message contains data payload
         if (remoteMessage.data.isNotEmpty()) {
             handleDataMessage(remoteMessage.data)
-        }
-
-        // Check if message contains notification payload
-        remoteMessage.notification?.let {
-            sendNotification(it.title ?: "New Notification", it.body ?: "")
+        } else {
+            // Check if message contains notification payload
+            remoteMessage.notification?.let {
+                handleNotificationPayload(it.title ?: "New Notification", it.body ?: "", remoteMessage.data)
+            }
         }
     }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // Send token to your server or save locally
-        // You can use SharedPreferences or send to your backend
+        // Save token locally
         saveTokenToPreferences(token)
+        
+        // Sync token to server (will be handled by token registration on login)
+        android.util.Log.d("FCM", "New FCM token: $token")
     }
 
     private fun handleDataMessage(data: Map<String, String>) {
         val title = data["title"] ?: "New Notification"
-        val body = data["body"] ?: ""
-        val type = data["type"] ?: "general"
+        val body = data["body"] ?: data["message"] ?: ""
+        val type = data["type"] ?: "SYSTEM"
+        val userId = data["userId"] ?: ""
+        val relatedId = data["relatedId"]
         
-        // Handle different notification types
-        when (type) {
-            "booking" -> {
-                // Handle booking notification
-                sendNotification(title, body)
+        // Save notification to database
+        serviceScope.launch {
+            try {
+                val notification = Notification(
+                    id = data["id"] ?: UUID.randomUUID().toString(),
+                    userId = userId,
+                    title = title,
+                    message = body,
+                    type = parseNotificationType(type),
+                    relatedId = relatedId,
+                    isRead = false,
+                    createdAt = System.currentTimeMillis(),
+                    synced = false
+                )
+                
+                LocalDatabaseHelper.saveNotification(notification)
+            } catch (e: Exception) {
+                android.util.Log.e("FCM", "Error saving notification: ${e.message}", e)
             }
-            "ground" -> {
-                // Handle ground notification
-                sendNotification(title, body)
+        }
+        
+        // Show system notification
+        sendNotification(title, body, data)
+    }
+    
+    private fun handleNotificationPayload(title: String, body: String, data: Map<String, String>) {
+        val userId = data["userId"] ?: ""
+        val type = data["type"] ?: "SYSTEM"
+        val relatedId = data["relatedId"]
+        
+        // Save notification to database
+        serviceScope.launch {
+            try {
+                val notification = Notification(
+                    id = data["id"] ?: UUID.randomUUID().toString(),
+                    userId = userId,
+                    title = title,
+                    message = body,
+                    type = parseNotificationType(type),
+                    relatedId = relatedId,
+                    isRead = false,
+                    createdAt = System.currentTimeMillis(),
+                    synced = false
+                )
+                
+                LocalDatabaseHelper.saveNotification(notification)
+            } catch (e: Exception) {
+                android.util.Log.e("FCM", "Error saving notification: ${e.message}", e)
             }
-            else -> {
-                sendNotification(title, body)
-            }
+        }
+        
+        // Show system notification
+        sendNotification(title, body, data)
+    }
+    
+    private fun parseNotificationType(type: String): NotificationType {
+        return try {
+            NotificationType.valueOf(type.uppercase())
+        } catch (e: Exception) {
+            NotificationType.SYSTEM
         }
     }
 
-    private fun sendNotification(title: String, messageBody: String) {
+    private fun sendNotification(title: String, messageBody: String, data: Map<String, String> = emptyMap()) {
         val intent = Intent(this, MainActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        
+        // Add notification data to intent
+        data.forEach { (key, value) ->
+            intent.putExtra(key, value)
+        }
         
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intent,

@@ -2,10 +2,12 @@ package com.example.smd_fyp.player
 
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import android.content.Intent
+import android.content.SharedPreferences
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -14,13 +16,23 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.FragmentContainerView
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.smd_fyp.R
+import com.example.smd_fyp.api.ApiClient
 import com.example.smd_fyp.auth.AuthActivity
-import com.example.smd_fyp.model.Ground
+import com.example.smd_fyp.database.LocalDatabaseHelper
+import com.example.smd_fyp.firebase.FirebaseAuthHelper
+import com.example.smd_fyp.utils.GlideHelper
+import com.example.smd_fyp.home.GroundAdapter
+import com.example.smd_fyp.model.GroundApi
 import com.example.smd_fyp.player.fragments.NotificationsFragment
-import com.example.smd_fyp.player.adapter.GroundAdapter
+import com.example.smd_fyp.sync.SyncManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeActivity : AppCompatActivity() {
     
@@ -49,32 +61,24 @@ class HomeActivity : AppCompatActivity() {
         tvPriceFilter = findViewById(R.id.tvPriceFilter)
         fragmentContainerNotifications = findViewById(R.id.fragmentContainerNotifications)
 
-        // Wire RecyclerView with mock data so cards render at runtime
+        // Initialize database
+        LocalDatabaseHelper.initialize(this)
+
+        // Setup RecyclerView
         val rv = findViewById<RecyclerView>(R.id.rvFeaturedGrounds)
         rv.layoutManager = LinearLayoutManager(this)
+        
+        val adapter = GroundAdapter(mutableListOf<GroundApi>()) { ground ->
+            // Navigate to ground details screen
+            val intent = Intent(this, com.example.smd_fyp.GroundDetailActivity::class.java).apply {
+                putExtra("ground_id", ground.id)
+            }
+            startActivity(intent)
+        }
+        rv.adapter = adapter
 
-        val items = listOf(
-            Ground(
-                name = getString(R.string.ground_rc_name),
-                location = getString(R.string.ground_gv_location),
-                priceText = getString(R.string.ground_rc_price),
-                ratingText = getString(R.string.ground_rc_rating),
-                imageResId = R.drawable.mock_ground1,
-                hasFloodlights = true,
-                hasParking = true
-            ),
-            Ground(
-                name = getString(R.string.ground_gv_name),
-                location = getString(R.string.ground_gv_location),
-                priceText = getString(R.string.ground_gv_price),
-                ratingText = getString(R.string.ground_gv_rating),
-                imageResId = R.drawable.mock_ground2,
-                hasFloodlights = true,
-                hasParking = false
-            )
-        )
-
-        rv.adapter = GroundAdapter(items)
+        // Load grounds from API
+        loadGrounds(adapter)
 
         // Setup Filters button click listener
         findViewById<View>(R.id.btnFilters)?.setOnClickListener {
@@ -110,11 +114,136 @@ class HomeActivity : AppCompatActivity() {
         // Setup Navigation Drawer menu items
         setupDrawerMenu()
 
+        // Load drawer profile data
+        loadDrawerProfileData()
+
         // Setup back button handling
         setupBackPressHandler()
 
         // TODO: Setup search functionality
         // TODO: Setup other top bar button click listeners
+    }
+    
+    private fun loadDrawerProfileData() {
+        lifecycleScope.launch {
+            try {
+                val currentUser = FirebaseAuthHelper.getCurrentUser()
+                if (currentUser == null) {
+                    // Fallback to SharedPreferences
+                    val sharedPreferences = getSharedPreferences("user_profile", MODE_PRIVATE)
+                    val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+                    val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
+                    
+                    findViewById<TextView>(R.id.tvUserName)?.text = fullName
+                    findViewById<TextView>(R.id.tvUserEmail)?.text = email
+                    
+                    // Load profile image
+                    val imageUrl = sharedPreferences.getString("profile_image_url", null)
+                    if (!imageUrl.isNullOrEmpty()) {
+                        val normalizedUrl = ApiClient.normalizeImageUrl(this@HomeActivity, imageUrl)
+                        GlideHelper.loadImage(
+                            context = this@HomeActivity,
+                            imageUrl = normalizedUrl,
+                            imageView = findViewById(R.id.ivProfilePicture),
+                            placeholder = R.drawable.ic_person,
+                            errorDrawable = R.drawable.ic_person,
+                            tag = "Drawer",
+                            useCircleCrop = true
+                        )
+                    } else {
+                        findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                    }
+                    return@launch
+                }
+                
+                // Get user from database
+                val user = withContext(Dispatchers.IO) {
+                    LocalDatabaseHelper.getUser(currentUser.uid)
+                }
+                
+                withContext(Dispatchers.Main) {
+                    if (user != null) {
+                        findViewById<TextView>(R.id.tvUserName)?.text = user.fullName
+                        findViewById<TextView>(R.id.tvUserEmail)?.text = user.email
+                        
+                        // Load profile image
+                        user.profileImageUrl?.let { imageUrl ->
+                            if (imageUrl.isNotBlank()) {
+                                val normalizedUrl = ApiClient.normalizeImageUrl(this@HomeActivity, imageUrl)
+                                GlideHelper.loadImage(
+                                    context = this@HomeActivity,
+                                    imageUrl = normalizedUrl,
+                                    imageView = findViewById(R.id.ivProfilePicture),
+                                    placeholder = R.drawable.ic_person,
+                                    errorDrawable = R.drawable.ic_person,
+                                    tag = "Drawer",
+                                    useCircleCrop = true
+                                )
+                            } else {
+                                findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                            }
+                        } ?: run {
+                            findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                        }
+                    } else {
+                        // Fallback to SharedPreferences
+                        val sharedPreferences = getSharedPreferences("user_profile", MODE_PRIVATE)
+                        val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+                        val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
+                        
+                        findViewById<TextView>(R.id.tvUserName)?.text = fullName
+                        findViewById<TextView>(R.id.tvUserEmail)?.text = email
+                        findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Fallback to SharedPreferences on error
+                val sharedPreferences = getSharedPreferences("user_profile", MODE_PRIVATE)
+                val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+                val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
+                
+                findViewById<TextView>(R.id.tvUserName)?.text = fullName
+                findViewById<TextView>(R.id.tvUserEmail)?.text = email
+                findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+            }
+        }
+    }
+    
+    private fun loadGrounds(adapter: GroundAdapter) {
+        lifecycleScope.launch {
+            try {
+                // First, observe local database (offline support)
+                LocalDatabaseHelper.getAllGrounds()?.collect { localGrounds: List<GroundApi> ->
+                    val availableGrounds: List<GroundApi> = localGrounds.filter { it.available }
+                    adapter.updateItems(availableGrounds)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        
+        // Fetch from API if online
+        lifecycleScope.launch {
+            if (SyncManager.isOnline(this@HomeActivity)) {
+                try {
+                    val apiService = ApiClient.getPhpApiService(this@HomeActivity)
+                    val response = apiService.getGrounds()
+                    
+                    if (response.isSuccessful && response.body() != null) {
+                        val apiGrounds = response.body()!!
+                        
+                        // Save to local database
+                        withContext(Dispatchers.IO) {
+                            LocalDatabaseHelper.saveGrounds(apiGrounds.map { it.copy(synced = true) })
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Don't show error toast, just use local data
+                }
+            }
+        }
     }
 
     private fun toggleFilters() {

@@ -12,11 +12,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.smd_fyp.database.LocalDatabaseHelper
 import com.example.smd_fyp.firebase.FirebaseAuthHelper
 import com.example.smd_fyp.model.Favorite
 import com.example.smd_fyp.model.GroundApi
-import com.example.smd_fyp.utils.GlideHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -197,14 +198,19 @@ class GroundDetailActivity : AppCompatActivity() {
         // Ground Image
         val ivGroundImage = findViewById<ImageView>(R.id.ivGroundImage)
         if (!ground.imageUrl.isNullOrEmpty()) {
-            GlideHelper.loadImage(
-                context = this,
-                imageUrl = ground.imageUrl,
-                imageView = ivGroundImage,
-                placeholder = R.drawable.mock_ground1,
-                errorDrawable = R.drawable.mock_ground1,
-                tag = "GroundDetail"
-            )
+            // Use Glide directly with proper lifecycle management to prevent image reset on scroll
+            val normalizedUrl = com.example.smd_fyp.api.ApiClient.normalizeImageUrl(this, ground.imageUrl)
+            if (!normalizedUrl.isNullOrEmpty()) {
+                Glide.with(this)
+                    .load(normalizedUrl)
+                    .placeholder(R.drawable.mock_ground1)
+                    .error(R.drawable.mock_ground1)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .skipMemoryCache(false)
+                    .into(ivGroundImage)
+            } else {
+                ivGroundImage.setImageResource(R.drawable.mock_ground1)
+            }
         } else {
             ivGroundImage.setImageResource(R.drawable.mock_ground1)
         }

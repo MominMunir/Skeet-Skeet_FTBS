@@ -61,6 +61,9 @@
         <activity
             android:name=".ReceiptActivity"
             android:exported="false" />
+        <activity
+            android:name=".WeatherActivity"
+            android:exported="false" />
             
         <!-- Firebase Cloud Messaging default notification channel -->
         <meta-data

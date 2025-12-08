@@ -27,16 +27,22 @@ class AdminSettingsFragment : Fragment() {
         val switchEmail = view.findViewById<SwitchCompat>(R.id.switchEmail)
         val switchAutoApprove = view.findViewById<SwitchCompat>(R.id.switchAutoApprove)
         
+        // Load saved preferences
+        val prefs = requireContext().getSharedPreferences("admin_settings", 0)
+        switchNotifications?.isChecked = prefs.getBoolean("push_notifications", true)
+        switchEmail?.isChecked = prefs.getBoolean("email_notifications", true)
+        switchAutoApprove?.isChecked = prefs.getBoolean("auto_approve", false)
+        
         switchNotifications?.setOnCheckedChangeListener { _, isChecked ->
-            // Handle push notifications toggle
+            prefs.edit().putBoolean("push_notifications", isChecked).apply()
         }
         
         switchEmail?.setOnCheckedChangeListener { _, isChecked ->
-            // Handle email notifications toggle
+            prefs.edit().putBoolean("email_notifications", isChecked).apply()
         }
         
         switchAutoApprove?.setOnCheckedChangeListener { _, isChecked ->
-            // Handle auto-approve bookings toggle
+            prefs.edit().putBoolean("auto_approve", isChecked).apply()
         }
         
         view.findViewById<View>(R.id.btnEditProfile)?.setOnClickListener {
@@ -58,9 +64,21 @@ class AdminSettingsFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.btnLogout)?.setOnClickListener {
-            // Handle logout
-            startActivity(Intent(requireContext(), AuthActivity::class.java))
-            requireActivity().finish()
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Logout")
+                .setMessage("Are you sure you want to logout?")
+                .setPositiveButton("Logout") { _, _ ->
+                    // Clear login state and Firebase session
+                    com.example.smd_fyp.auth.LoginStateManager.clearLoginState(requireContext())
+                    com.example.smd_fyp.firebase.FirebaseAuthHelper.signOut()
+                    
+                    val intent = Intent(requireContext(), AuthActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    requireActivity().finish()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
     }
 }

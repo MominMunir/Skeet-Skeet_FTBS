@@ -32,4 +32,7 @@ interface BookingDao {
     
     @Query("SELECT * FROM Booking")
     fun getAllBookings(): Flow<List<Booking>>
+    
+    @Query("SELECT * FROM Booking")
+    suspend fun getAllBookingsSync(): List<Booking>
 }

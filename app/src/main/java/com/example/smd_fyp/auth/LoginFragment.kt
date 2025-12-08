@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -14,6 +15,7 @@ import com.example.smd_fyp.AdminDashboardActivity
 import com.example.smd_fyp.GroundkeeperDashboardActivity
 import com.example.smd_fyp.HomeActivity
 import com.example.smd_fyp.R
+import com.example.smd_fyp.auth.LoginStateManager
 import com.example.smd_fyp.auth.ResetPasswordActivity
 import com.example.smd_fyp.database.LocalDatabaseHelper
 import com.example.smd_fyp.firebase.FCMTokenHelper
@@ -49,6 +51,7 @@ class LoginFragment : Fragment() {
         // Sign In -> Navigate based on user's stored role
         val etEmail = view.findViewById<TextInputEditText>(R.id.etEmail)
         val etPassword = view.findViewById<TextInputEditText>(R.id.etPassword)
+        val cbStayLoggedIn = view.findViewById<CheckBox>(R.id.cbStayLoggedIn)
         
         view.findViewById<View>(R.id.btnSignIn)?.setOnClickListener {
             val email = etEmail?.text?.toString()?.trim() ?: ""
@@ -140,6 +143,15 @@ class LoginFragment : Fragment() {
                                     android.util.Log.e("Login", "Error registering FCM token: ${e.message}")
                                 }
                             }
+                            
+                            // Save login state if checkbox is checked
+                            val stayLoggedIn = cbStayLoggedIn?.isChecked ?: false
+                            LoginStateManager.saveLoginState(
+                                requireContext(),
+                                firebaseUser.uid,
+                                user?.role?.name ?: UserRole.PLAYER.name,
+                                stayLoggedIn
+                            )
                             
                             // Navigate based on user's stored role (on main thread)
                             withContext(Dispatchers.Main) {

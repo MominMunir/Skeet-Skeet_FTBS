@@ -29,4 +29,7 @@ interface ReviewDao {
     
     @Query("SELECT * FROM Review WHERE id = :id")
     suspend fun getReview(id: String): Review?
+    
+    @Query("SELECT * FROM Review")
+    suspend fun getAllReviewsSync(): List<Review>
 }

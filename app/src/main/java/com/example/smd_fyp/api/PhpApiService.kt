@@ -53,6 +53,9 @@ interface PhpApiService {
     
     // Users API
     @GET("users.php")
+    suspend fun getUsers(): Response<List<User>>
+    
+    @GET("users.php")
     suspend fun getUser(@Query("id") id: String): Response<User>
     
     @GET("users.php")

@@ -5,10 +5,18 @@ import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import com.example.smd_fyp.api.ApiClient
+import com.example.smd_fyp.database.LocalDatabaseHelper
 import com.example.smd_fyp.fragments.AdminAnalyticsFragment
 import com.example.smd_fyp.fragments.AdminGroundsFragment
 import com.example.smd_fyp.fragments.AdminOverviewFragment
 import com.example.smd_fyp.fragments.AdminUsersFragment
+import com.example.smd_fyp.sync.SyncManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AdminDashboardActivity : AppCompatActivity() {
 
@@ -17,17 +25,86 @@ class AdminDashboardActivity : AppCompatActivity() {
     private lateinit var tvUsersTab: TextView
     private lateinit var tvAnalyticsTab: TextView
     private lateinit var btnBack: View
+    private lateinit var tvTotalUsers: TextView
+    private lateinit var tvActiveGrounds: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_admin_dashboard)
 
+        // Initialize database
+        LocalDatabaseHelper.initialize(this)
+
         setupTabs()
-    setupBack()
+        setupBack()
+        loadDashboardStats()
         
         // Load default fragment (Overview)
         if (savedInstanceState == null) {
             loadFragment(AdminOverviewFragment())
+        }
+    }
+    
+    private fun loadDashboardStats() {
+        // Initialize views
+        tvTotalUsers = findViewById(R.id.tvTotalUsers)
+        tvActiveGrounds = findViewById(R.id.tvActiveGrounds)
+        
+        lifecycleScope.launch {
+            try {
+                // Load users from local DB
+                LocalDatabaseHelper.getAllUsers()?.collect { users ->
+                    tvTotalUsers.text = users.size.toString()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        
+        lifecycleScope.launch {
+            try {
+                // Load grounds from local DB
+                LocalDatabaseHelper.getAllGrounds()?.collect { grounds ->
+                    val activeGrounds = grounds.count { it.available }
+                    tvActiveGrounds.text = activeGrounds.toString()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        
+        // Fetch from API if online
+        lifecycleScope.launch {
+            if (SyncManager.isOnline(this@AdminDashboardActivity)) {
+                try {
+                    val apiService = ApiClient.getPhpApiService(this@AdminDashboardActivity)
+                    
+                    // Fetch users
+                    try {
+                        val usersResponse = apiService.getUsers()
+                        if (usersResponse.isSuccessful && usersResponse.body() != null) {
+                            withContext(Dispatchers.IO) {
+                                usersResponse.body()!!.forEach { user ->
+                                    LocalDatabaseHelper.saveUser(user.copy(synced = true))
+                                }
+                            }
+                            android.util.Log.d("AdminDashboard", "Fetched ${usersResponse.body()!!.size} users from API")
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("AdminDashboard", "Error fetching users from API", e)
+                    }
+                    
+                    // Fetch grounds
+                    val groundsResponse = apiService.getGrounds()
+                    if (groundsResponse.isSuccessful && groundsResponse.body() != null) {
+                        withContext(Dispatchers.IO) {
+                            LocalDatabaseHelper.saveGrounds(groundsResponse.body()!!.map { it.copy(synced = true) })
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 

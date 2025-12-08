@@ -60,9 +60,10 @@
                             android:padding="16dp">
 
                             <TextView
+                                android:id="@+id/tvBookingSuccessRate"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/val_89_percent"
+                                android:text="89%"
                                 android:textSize="22sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/blue_600" />
@@ -94,9 +95,10 @@
                             android:padding="16dp">
 
                             <TextView
+                                android:id="@+id/tvAverageRating"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/val_4_6"
+                                android:text="4.6"
                                 android:textSize="22sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/green_600" />
@@ -136,9 +138,10 @@
                             android:padding="16dp">
 
                             <TextView
+                                android:id="@+id/tvGroundUtilization"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/val_72_percent"
+                                android:text="72%"
                                 android:textSize="22sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/yellow_600" />
@@ -170,9 +173,10 @@
                             android:padding="16dp">
 
                             <TextView
+                                android:id="@+id/tvAvgBookingTime"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="@string/val_15_min"
+                                android:text="15min"
                                 android:textSize="22sp"
                                 android:textStyle="bold"
                                 android:textColor="@color/purple_600" />
@@ -236,14 +240,16 @@
                             android:textColor="@color/text_primary" />
 
                         <TextView
+                            android:id="@+id/tvBookingsGrowth"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/val_plus_12"
+                            android:text="+12%"
                             android:textStyle="bold"
                             android:textColor="@color/green_600" />
                     </LinearLayout>
 
                     <ProgressBar
+                        android:id="@+id/progressBookingsGrowth"
                         style="@android:style/Widget.ProgressBar.Horizontal"
                         android:layout_width="match_parent"
                         android:layout_height="6dp"
@@ -276,14 +282,16 @@
                             android:textColor="@color/text_primary" />
 
                         <TextView
+                            android:id="@+id/tvUserAcquisition"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/val_plus_8"
+                            android:text="+8%"
                             android:textStyle="bold"
                             android:textColor="@color/green_600" />
                     </LinearLayout>
 
                     <ProgressBar
+                        android:id="@+id/progressUserAcquisition"
                         style="@android:style/Widget.ProgressBar.Horizontal"
                         android:layout_width="match_parent"
                         android:layout_height="6dp"
@@ -315,14 +323,16 @@
                             android:textColor="@color/text_primary" />
 
                         <TextView
+                            android:id="@+id/tvRevenueGrowth"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/val_plus_15"
+                            android:text="+15%"
                             android:textStyle="bold"
                             android:textColor="@color/green_600" />
                     </LinearLayout>
 
                     <ProgressBar
+                        android:id="@+id/progressRevenueGrowth"
                         style="@android:style/Widget.ProgressBar.Horizontal"
                         android:layout_width="match_parent"
                         android:layout_height="6dp"

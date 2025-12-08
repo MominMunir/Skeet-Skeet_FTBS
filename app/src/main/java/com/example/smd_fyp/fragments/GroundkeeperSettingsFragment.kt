@@ -50,28 +50,45 @@ class GroundkeeperSettingsFragment : Fragment() {
         }
         
         view.findViewById<View>(R.id.llPaymentSettings)?.setOnClickListener {
-            // TODO: Payment settings
-            Toast.makeText(requireContext(), "Payment Settings", Toast.LENGTH_SHORT).show()
+            // Navigate to payment settings (could be a fragment or activity)
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Payment Settings")
+                .setMessage("Configure your payment methods and preferences here.")
+                .setPositiveButton("OK", null)
+                .show()
         }
         
         view.findViewById<View>(R.id.llGroundSettings)?.setOnClickListener {
-            // TODO: Ground settings
-            Toast.makeText(requireContext(), "Ground Settings", Toast.LENGTH_SHORT).show()
+            // Navigate to ground management
+            val myGroundsFragment = com.example.smd_fyp.fragments.GroundkeeperMyGroundsFragment()
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragmentContainer, myGroundsFragment)
+                .addToBackStack("ground_settings")
+                .commit()
         }
         
         view.findViewById<View>(R.id.llHelpCenter)?.setOnClickListener {
-            // TODO: Open help center
-            Toast.makeText(requireContext(), "Help Center", Toast.LENGTH_SHORT).show()
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Help Center")
+                .setMessage("For help and support, please contact us at support@skeetskeet.com")
+                .setPositiveButton("OK", null)
+                .show()
         }
         
         view.findViewById<View>(R.id.llContactSupport)?.setOnClickListener {
-            // TODO: Contact support
-            Toast.makeText(requireContext(), "Contact Support", Toast.LENGTH_SHORT).show()
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Contact Support")
+                .setMessage("Email: support@skeetskeet.com\nPhone: +92-XXX-XXXXXXX")
+                .setPositiveButton("OK", null)
+                .show()
         }
         
         view.findViewById<View>(R.id.llTermsPrivacy)?.setOnClickListener {
-            // TODO: Show terms and privacy
-            Toast.makeText(requireContext(), "Terms & Privacy", Toast.LENGTH_SHORT).show()
+            androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Terms & Privacy")
+                .setMessage("By using this app, you agree to our Terms of Service and Privacy Policy.")
+                .setPositiveButton("OK", null)
+                .show()
         }
         
         view.findViewById<View>(R.id.btnLogout)?.setOnClickListener {
@@ -97,7 +114,10 @@ class GroundkeeperSettingsFragment : Fragment() {
             .setTitle("Logout")
             .setMessage("Are you sure you want to logout?")
             .setPositiveButton("Logout") { _, _ ->
-                // Clear user session/data
+                // Clear login state and Firebase session
+                com.example.smd_fyp.auth.LoginStateManager.clearLoginState(requireContext())
+                com.example.smd_fyp.firebase.FirebaseAuthHelper.signOut()
+                
                 val intent = Intent(requireContext(), AuthActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)

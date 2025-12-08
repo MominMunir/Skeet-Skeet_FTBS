@@ -2,11 +2,13 @@ package com.example.smd_fyp.database
 
 import android.content.Context
 import com.example.smd_fyp.model.Booking
+import com.example.smd_fyp.model.Favorite
 import com.example.smd_fyp.model.GroundApi
 import com.example.smd_fyp.model.Notification
 import com.example.smd_fyp.model.Review
 import com.example.smd_fyp.model.User
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 /**
  * Local Database Helper using SQLite (via Room)
@@ -63,6 +65,20 @@ object LocalDatabaseHelper {
      */
     suspend fun getUnsyncedBookings(): List<Booking> {
         return database?.bookingDao()?.getUnsyncedBookings() ?: emptyList()
+    }
+    
+    /**
+     * Get all bookings (synchronous, single snapshot)
+     */
+    suspend fun getAllBookingsSync(): List<Booking> {
+        return database?.bookingDao()?.getAllBookingsSync() ?: emptyList()
+    }
+    
+    /**
+     * Get all bookings as Flow (for reactive updates)
+     */
+    fun getAllBookings(): Flow<List<Booking>>? {
+        return database?.bookingDao()?.getAllBookings()
     }
     
     /**
@@ -197,6 +213,13 @@ object LocalDatabaseHelper {
     }
     
     /**
+     * Get all users (synchronous, single snapshot)
+     */
+    suspend fun getAllUsersSync(): List<User> {
+        return database?.userDao()?.getAllUsers()?.first() ?: emptyList()
+    }
+    
+    /**
      * Get all unsynced users (for sync when online)
      */
     suspend fun getUnsyncedUsers(): List<User> {
@@ -255,6 +278,13 @@ object LocalDatabaseHelper {
      */
     suspend fun getAverageRating(groundId: String): Double {
         return database?.reviewDao()?.getAverageRating(groundId) ?: 0.0
+    }
+    
+    /**
+     * Get all reviews (synchronous)
+     */
+    suspend fun getAllReviewsSync(): List<Review> {
+        return database?.reviewDao()?.getAllReviewsSync() ?: emptyList()
     }
     
     /**

@@ -68,8 +68,21 @@ class GroundkeeperBookingsFragment : Fragment() {
     private fun loadBookings() {
         lifecycleScope.launch {
             try {
-                // Fetch from API if online
-                if (SyncManager.isOnline(requireContext())) {
+                // First, observe local database (offline support)
+                LocalDatabaseHelper.getAllBookingsSync().let { localBookings ->
+                    bookingAdapter.updateItems(localBookings)
+                    tvBookingCount.text = "${localBookings.size} total"
+                    llEmptyState.visibility = if (localBookings.isEmpty()) View.VISIBLE else View.GONE
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        
+        // Fetch from API if online
+        lifecycleScope.launch {
+            if (SyncManager.isOnline(requireContext())) {
+                try {
                     val apiService = ApiClient.getPhpApiService(requireContext())
                     // Get all bookings (groundkeeper sees all bookings for their grounds)
                     val response = apiService.getBookings() // No userId filter = all bookings
@@ -92,10 +105,10 @@ class GroundkeeperBookingsFragment : Fragment() {
                         tvBookingCount.text = "${myBookings.size} total"
                         llEmptyState.visibility = if (myBookings.isEmpty()) View.VISIBLE else View.GONE
                     }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Don't show error toast, just use local data
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(requireContext(), "Error loading bookings: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }

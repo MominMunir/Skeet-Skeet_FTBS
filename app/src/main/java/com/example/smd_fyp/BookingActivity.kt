@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.smd_fyp.api.OpenMeteoService
 import com.example.smd_fyp.database.LocalDatabaseHelper
 import com.example.smd_fyp.firebase.FirebaseAuthHelper
 import com.example.smd_fyp.model.Booking
@@ -43,11 +44,14 @@ class BookingActivity : AppCompatActivity() {
     private lateinit var tvTime: TextView
     private lateinit var tvDuration: TextView
     private lateinit var tvTotalPrice: TextView
+    private lateinit var tvWeatherSummary: TextView
     private lateinit var btnConfirmBooking: Button
     private lateinit var rgPaymentMethod: RadioGroup
 
     private val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     private val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
+
+    private val openMeteo by lazy { OpenMeteoService.create() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -132,6 +136,7 @@ class BookingActivity : AppCompatActivity() {
         tvTime = findViewById(R.id.tvTime)
         tvDuration = findViewById(R.id.tvDuration)
         tvTotalPrice = findViewById(R.id.tvTotalPrice)
+        tvWeatherSummary = findViewById(R.id.tvWeatherSummary)
         btnConfirmBooking = findViewById(R.id.btnConfirmBooking)
         rgPaymentMethod = findViewById(R.id.rgPaymentMethod)
     }
@@ -146,6 +151,7 @@ class BookingActivity : AppCompatActivity() {
                 if (loadedGround != null) {
                     ground = loadedGround
                     tvGroundName.text = loadedGround.name
+                    loadWeatherForSelectedDate()
                 } else {
                     // Create temporary ground object from intent data
                     ground = GroundApi(
@@ -154,6 +160,7 @@ class BookingActivity : AppCompatActivity() {
                         price = groundPrice
                     )
                     tvGroundName.text = groundName
+                    loadWeatherForSelectedDate()
                 }
                 updateTotalPrice()
             } catch (e: Exception) {
@@ -165,6 +172,7 @@ class BookingActivity : AppCompatActivity() {
                     price = groundPrice
                 )
                 tvGroundName.text = groundName
+                loadWeatherForSelectedDate()
             }
         }
     }
@@ -179,6 +187,7 @@ class BookingActivity : AppCompatActivity() {
             { _, selectedYear, selectedMonth, selectedDay ->
                 selectedDate.set(selectedYear, selectedMonth, selectedDay)
                 updateDateDisplay()
+                loadWeatherForSelectedDate()
             },
             year,
             month,
@@ -208,6 +217,7 @@ class BookingActivity : AppCompatActivity() {
 
     private fun updateDateDisplay() {
         tvDate.text = dateFormat.format(selectedDate.time)
+        loadWeatherForSelectedDate()
     }
 
     private fun updateTimeDisplay() {
@@ -223,6 +233,62 @@ class BookingActivity : AppCompatActivity() {
             val totalPrice = it.price * selectedDuration
             tvTotalPrice.text = "Rs. ${totalPrice.toInt()}"
         }
+    }
+
+    private fun loadWeatherForSelectedDate() {
+        val currentGround = ground ?: return
+        val city = currentGround.location ?: currentGround.name ?: ""
+        val coords = cityToCoords(city)
+        if (coords == null) {
+            tvWeatherSummary.text = "Weather not available for this location."
+            return
+        }
+
+        val targetDate = Calendar.getInstance().apply {
+            set(selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH), selectedDate.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
+        }
+        val isoDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(targetDate.time)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching {
+                openMeteo.getDailyForecast(coords.first, coords.second)
+            }.onSuccess { resp ->
+                val daily = resp.daily
+                val index = daily?.time?.indexOf(isoDate) ?: -1
+                val ui = if (index >= 0) {
+                    val prob = daily?.precipitation_probability_max?.getOrNull(index) ?: 0
+                    val sum = daily?.precipitation_sum?.getOrNull(index) ?: 0.0
+                    val tMin = daily?.temperature_2m_min?.getOrNull(index) ?: 0.0
+                    val tMax = daily?.temperature_2m_max?.getOrNull(index) ?: 0.0
+                    val code = daily?.weathercode?.getOrNull(index) ?: 0
+                    val isRain = isRainCode(code) || prob >= 30
+                    "Weather on ${dateFormat.format(targetDate.time)}: Min ${tMin.toInt()}°, Max ${tMax.toInt()}°, Rain ${prob}% (${String.format("%.1f", sum)} mm) ${if (isRain) "• Rain likely" else ""}"
+                } else {
+                    "Weather data not available for selected date."
+                }
+                withContext(Dispatchers.Main) {
+                    tvWeatherSummary.text = ui
+                }
+            }.onFailure {
+                withContext(Dispatchers.Main) {
+                    tvWeatherSummary.text = "Unable to load weather."
+                }
+            }
+        }
+    }
+
+    private fun cityToCoords(city: String): Pair<Double, Double>? {
+        val normalized = city.lowercase(Locale.getDefault())
+        return when {
+            normalized.contains("islamabad") -> 33.7215 to 73.0433
+            normalized.contains("lahore") -> 31.558 to 74.3507
+            normalized.contains("karachi") -> 24.8608 to 67.0104
+            else -> null
+        }
+    }
+
+    private fun isRainCode(code: Int): Boolean {
+        return (code in 51..67) || (code in 80..82)
     }
 
     private fun validateBooking(): Boolean {

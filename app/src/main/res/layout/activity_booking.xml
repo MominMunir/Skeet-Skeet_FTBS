@@ -168,6 +168,28 @@
                         app:tint="@color/text_secondary" />
                 </LinearLayout>
 
+                <!-- Weather for selected date -->
+                <TextView
+                    android:id="@+id/tvWeatherLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Weather"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvWeatherSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Loading weather..."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:background="@color/input_background"
+                    android:padding="12dp"
+                    android:layout_marginBottom="16dp" />
+
                 <!-- Duration Selector -->
                 <TextView
                     android:layout_width="wrap_content"

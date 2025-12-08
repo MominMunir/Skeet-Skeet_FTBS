@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 
 class FavoriteAdapter(
     private var favorites: List<Favorite>,
-    private val grounds: Map<String, GroundApi>,
+    private var grounds: Map<String, GroundApi>,
     private val onFavoriteRemoved: () -> Unit
 ) : RecyclerView.Adapter<FavoriteAdapter.ViewHolder>() {
 
@@ -76,6 +76,7 @@ class FavoriteAdapter(
 
     fun updateItems(newFavorites: List<Favorite>, newGrounds: Map<String, GroundApi>) {
         favorites = newFavorites
+        grounds = newGrounds
         notifyDataSetChanged()
     }
 }

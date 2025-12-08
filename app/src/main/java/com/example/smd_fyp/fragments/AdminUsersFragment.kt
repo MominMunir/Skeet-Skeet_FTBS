@@ -71,19 +71,42 @@ class AdminUsersFragment : Fragment() {
     private fun loadUsers() {
         lifecycleScope.launch {
             try {
-                // Observe local database
+                // Fetch from API first if online
+                if (SyncManager.isOnline(requireContext())) {
+                    try {
+                        val apiService = ApiClient.getPhpApiService(requireContext())
+                        val response = apiService.getUsers()
+                        
+                        if (response.isSuccessful && response.body() != null) {
+                            val apiUsers = response.body()!!
+                            android.util.Log.d("AdminUsersFragment", "Fetched ${apiUsers.size} users from API")
+                            
+                            // Save to local database
+                            withContext(Dispatchers.IO) {
+                                apiUsers.forEach { user ->
+                                    LocalDatabaseHelper.saveUser(user.copy(synced = true))
+                                }
+                            }
+                        } else {
+                            android.util.Log.e("AdminUsersFragment", "API Error: ${response.code()} - ${response.message()}")
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("AdminUsersFragment", "Error fetching users from API", e)
+                        e.printStackTrace()
+                    }
+                }
+                
+                // Observe local database for updates
                 LocalDatabaseHelper.getAllUsers()?.collect { localUsers ->
                     allUsers.clear()
                     allUsers.addAll(localUsers)
+                    android.util.Log.d("AdminUsersFragment", "Loaded ${localUsers.size} users from local DB")
                     filterUsers(etSearchUsers.text.toString())
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-        
-        // Fetch from API if online (users are synced individually, so we'll get them from local DB)
-        // Users are synced when they register/login, so local DB should have them
     }
     
     private fun filterUsers(query: String) {

@@ -98,7 +98,10 @@ class SettingsFragment : Fragment() {
             .setTitle("Logout")
             .setMessage("Are you sure you want to logout?")
             .setPositiveButton("Logout") { _, _ ->
-                // Clear user session/data
+                // Clear login state and Firebase session
+                com.example.smd_fyp.auth.LoginStateManager.clearLoginState(requireContext())
+                com.example.smd_fyp.firebase.FirebaseAuthHelper.signOut()
+                
                 val intent = Intent(requireContext(), AuthActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)

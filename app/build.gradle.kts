@@ -72,6 +72,9 @@ dependencies {
     // Glide for image loading
     implementation(libs.glide)
     implementation(libs.glide.okhttp)
+
+    // WorkManager for background booking status updates
+    implementation(libs.androidx.work.ktx)
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -105,9 +105,23 @@ class UserProfileActivity : AppCompatActivity() {
         // Setup tabs
         setupTabs()
 
-        // Load default fragment (Bookings)
+        // Load default fragment based on intent or default to Bookings
         if (savedInstanceState == null) {
-            loadFragment(BookingsFragment())
+            val selectedTab = intent.getStringExtra("selected_tab")
+            when (selectedTab) {
+                "favorites" -> {
+                    loadFragment(FavoritesFragment())
+                    setActiveTab(tvFavoritesTab)
+                }
+                "settings" -> {
+                    loadFragment(SettingsFragment())
+                    setActiveTab(tvSettingsTab)
+                }
+                else -> {
+                    loadFragment(BookingsFragment())
+                    setActiveTab(tvBookingsTab)
+                }
+            }
         }
     }
 

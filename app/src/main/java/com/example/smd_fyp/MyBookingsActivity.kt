@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -24,6 +25,7 @@ import com.example.smd_fyp.firebase.FirebaseAuthHelper
 import com.example.smd_fyp.home.BookingAdapter
 import com.example.smd_fyp.model.Booking
 import com.example.smd_fyp.sync.SyncManager
+import com.example.smd_fyp.utils.GlideHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -103,11 +105,86 @@ class MyBookingsActivity : AppCompatActivity() {
     }
 
     private fun loadDrawerProfileData() {
-        val fullName = sharedPreferences.getString("full_name", "Ahmed Khan") ?: "Ahmed Khan"
-        val email = sharedPreferences.getString("email", "ahmed@example.com") ?: "ahmed@example.com"
-        
-        findViewById<TextView>(R.id.tvUserName)?.text = fullName
-        findViewById<TextView>(R.id.tvUserEmail)?.text = email
+        lifecycleScope.launch {
+            try {
+                val currentUser = FirebaseAuthHelper.getCurrentUser()
+                if (currentUser == null) {
+                    // Fallback to SharedPreferences
+                    val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+                    val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
+                    
+                    findViewById<TextView>(R.id.tvUserName)?.text = fullName
+                    findViewById<TextView>(R.id.tvUserEmail)?.text = email
+                    
+                    // Load profile image
+                    val imageUrl = sharedPreferences.getString("profile_image_url", null)
+                    if (!imageUrl.isNullOrEmpty()) {
+                        val normalizedUrl = ApiClient.normalizeImageUrl(this@MyBookingsActivity, imageUrl)
+                        GlideHelper.loadImage(
+                            context = this@MyBookingsActivity,
+                            imageUrl = normalizedUrl,
+                            imageView = findViewById(R.id.ivProfilePicture),
+                            placeholder = R.drawable.ic_person,
+                            errorDrawable = R.drawable.ic_person,
+                            tag = "Drawer",
+                            useCircleCrop = true
+                        )
+                    } else {
+                        findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                    }
+                    return@launch
+                }
+                
+                // Get user from database
+                val user = withContext(Dispatchers.IO) {
+                    LocalDatabaseHelper.getUser(currentUser.uid)
+                }
+                
+                withContext(Dispatchers.Main) {
+                    if (user != null) {
+                        findViewById<TextView>(R.id.tvUserName)?.text = user.fullName
+                        findViewById<TextView>(R.id.tvUserEmail)?.text = user.email
+                        
+                        // Load profile image
+                        user.profileImageUrl?.let { imageUrl ->
+                            if (imageUrl.isNotBlank()) {
+                                val normalizedUrl = ApiClient.normalizeImageUrl(this@MyBookingsActivity, imageUrl)
+                                GlideHelper.loadImage(
+                                    context = this@MyBookingsActivity,
+                                    imageUrl = normalizedUrl,
+                                    imageView = findViewById(R.id.ivProfilePicture),
+                                    placeholder = R.drawable.ic_person,
+                                    errorDrawable = R.drawable.ic_person,
+                                    tag = "Drawer",
+                                    useCircleCrop = true
+                                )
+                            } else {
+                                findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                            }
+                        } ?: run {
+                            findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                        }
+                    } else {
+                        // Fallback to SharedPreferences
+                        val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+                        val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
+                        
+                        findViewById<TextView>(R.id.tvUserName)?.text = fullName
+                        findViewById<TextView>(R.id.tvUserEmail)?.text = email
+                        findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // Fallback to SharedPreferences on error
+                val fullName = sharedPreferences.getString("full_name", "User") ?: "User"
+                val email = sharedPreferences.getString("email", "email@example.com") ?: "email@example.com"
+                
+                findViewById<TextView>(R.id.tvUserName)?.text = fullName
+                findViewById<TextView>(R.id.tvUserEmail)?.text = email
+                findViewById<ImageView>(R.id.ivProfilePicture)?.setImageResource(R.drawable.ic_person)
+            }
+        }
     }
 
     private fun setupDrawerMenu() {
@@ -129,22 +206,23 @@ class MyBookingsActivity : AppCompatActivity() {
         // Favorites
         findViewById<View>(R.id.menuFavorites)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            // TODO: Navigate to Favorites screen
-            Toast.makeText(this, "Favorites", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, UserProfileActivity::class.java)
+            intent.putExtra("selected_tab", "favorites")
+            startActivity(intent)
         }
 
         // Settings
         findViewById<View>(R.id.menuSettings)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            // TODO: Navigate to Settings screen
-            Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, UserProfileActivity::class.java)
+            intent.putExtra("selected_tab", "settings")
+            startActivity(intent)
         }
 
         // Help & Support
         findViewById<View>(R.id.menuHelp)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            // TODO: Navigate to Help & Support screen
-            Toast.makeText(this, "Help & Support", Toast.LENGTH_SHORT).show()
+            showHelpSupportDialog()
         }
 
         // Logout
@@ -204,13 +282,27 @@ class MyBookingsActivity : AppCompatActivity() {
             .setTitle("Logout")
             .setMessage("Are you sure you want to logout?")
             .setPositiveButton("Logout") { _, _ ->
-                // TODO: Clear user session/data
+                // Clear login state and Firebase session
+                com.example.smd_fyp.auth.LoginStateManager.clearLoginState(this)
+                com.example.smd_fyp.firebase.FirebaseAuthHelper.signOut()
+                
                 val intent = Intent(this, AuthActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
                 finish()
             }
             .setNegativeButton("Cancel", null)
+            .show()
+    }
+    
+    private fun showHelpSupportDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Help & Support")
+            .setMessage("For assistance, please contact us:\n\n" +
+                    "Email: support@skeetskeet.com\n" +
+                    "Phone: +92 300 1234567\n\n" +
+                    "Our support team is available 24/7 to help you.")
+            .setPositiveButton("OK", null)
             .show()
     }
 

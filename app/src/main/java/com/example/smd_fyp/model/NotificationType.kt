@@ -4,6 +4,7 @@ enum class NotificationType {
     BOOKING,
     PAYMENT,
     REMINDER,
+    WEATHER,
     SYSTEM
 }
 

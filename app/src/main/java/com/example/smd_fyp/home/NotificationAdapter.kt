@@ -41,6 +41,7 @@ class NotificationAdapter(
             NotificationType.BOOKING -> R.drawable.ic_notifications
             NotificationType.PAYMENT -> R.drawable.ic_coin
             NotificationType.REMINDER -> R.drawable.ic_notifications
+            NotificationType.WEATHER -> R.drawable.ic_notifications
             NotificationType.SYSTEM -> R.drawable.ic_notifications
         }
         holder.ivIcon.setImageResource(iconRes)

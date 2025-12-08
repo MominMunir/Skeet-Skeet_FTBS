@@ -165,6 +165,11 @@ class NotificationsFragment : Fragment() {
                 val intent = Intent(requireContext(), MyBookingsActivity::class.java)
                 startActivity(intent)
             }
+            NotificationType.WEATHER -> {
+                // Navigate to weather page
+                val intent = Intent(requireContext(), com.example.smd_fyp.WeatherActivity::class.java)
+                startActivity(intent)
+            }
             NotificationType.SYSTEM -> {
                 // Stay on current screen or navigate to home
             }

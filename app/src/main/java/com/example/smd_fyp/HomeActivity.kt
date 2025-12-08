@@ -19,6 +19,11 @@ import androidx.fragment.app.FragmentContainerView
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.smd_fyp.api.ApiClient
 import com.example.smd_fyp.auth.AuthActivity
 import com.example.smd_fyp.database.LocalDatabaseHelper
@@ -27,11 +32,14 @@ import com.example.smd_fyp.utils.GlideHelper
 import com.example.smd_fyp.fragments.NotificationsFragment
 import com.example.smd_fyp.home.GroundAdapter
 import com.example.smd_fyp.model.GroundApi
+import com.example.smd_fyp.sync.AutoBookingStatusWorker
 import com.example.smd_fyp.sync.SyncManager
+import com.example.smd_fyp.sync.WeatherNotificationWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
 class HomeActivity : AppCompatActivity() {
     
@@ -42,6 +50,12 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var fragmentContainerNotifications: FragmentContainerView
     private var isFiltersVisible = false
     private var isNotificationsVisible = false
+    
+    // Filter state
+    private var selectedLocation: String? = null
+    private var selectedPriceRange: Pair<Double?, Double?>? = null
+    private var allGrounds: List<GroundApi> = emptyList()
+    private lateinit var adapter: GroundAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,7 +81,7 @@ class HomeActivity : AppCompatActivity() {
         val rv = findViewById<RecyclerView>(R.id.rvFeaturedGrounds)
         rv.layoutManager = LinearLayoutManager(this)
         
-        val adapter = GroundAdapter(mutableListOf<GroundApi>()) { ground ->
+        adapter = GroundAdapter(mutableListOf<GroundApi>()) { ground ->
             // Navigate to ground details screen
             val intent = Intent(this, GroundDetailActivity::class.java).apply {
                 putExtra("ground_id", ground.id)
@@ -77,7 +91,13 @@ class HomeActivity : AppCompatActivity() {
         rv.adapter = adapter
 
         // Load grounds from API
-        loadGrounds(adapter)
+        loadGrounds()
+        
+        // Schedule booking status auto-updates
+        scheduleBookingStatusWorker()
+        
+        // Schedule weather notification checks
+        scheduleWeatherNotificationWorker()
 
         // Setup Filters button click listener
         findViewById<View>(R.id.btnFilters)?.setOnClickListener {
@@ -102,6 +122,12 @@ class HomeActivity : AppCompatActivity() {
         // Setup Profile button click listener
         findViewById<View>(R.id.btnProfile)?.setOnClickListener {
             val intent = Intent(this, UserProfileActivity::class.java)
+            startActivity(intent)
+        }
+
+        // Weather button -> WeatherActivity
+        findViewById<View>(R.id.btnCoin)?.setOnClickListener {
+            val intent = Intent(this, WeatherActivity::class.java)
             startActivity(intent)
         }
 
@@ -209,13 +235,13 @@ class HomeActivity : AppCompatActivity() {
         }
     }
     
-    private fun loadGrounds(adapter: GroundAdapter) {
+    private fun loadGrounds() {
         lifecycleScope.launch {
             try {
                 // First, observe local database (offline support)
                 LocalDatabaseHelper.getAllGrounds()?.collect { localGrounds: List<GroundApi> ->
-                    val availableGrounds: List<GroundApi> = localGrounds.filter { it.available }
-                    adapter.updateItems(availableGrounds)
+                    allGrounds = localGrounds.filter { it.available }
+                    applyFilters()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -244,6 +270,66 @@ class HomeActivity : AppCompatActivity() {
             }
         }
     }
+    
+    private fun applyFilters() {
+        var filtered = allGrounds
+        
+        // Apply location filter - use keyword/substring matching
+        selectedLocation?.let { location ->
+            if (location != "All Locations") {
+                val searchKeyword = location.trim().lowercase()
+                filtered = filtered.filter { ground ->
+                    val groundLocation = ground.location?.trim()?.lowercase() ?: ""
+                    groundLocation.contains(searchKeyword)
+                }
+            }
+        }
+        
+        // Apply price filter
+        selectedPriceRange?.let { (minPrice, maxPrice) ->
+            filtered = filtered.filter { ground ->
+                val price = ground.price
+                val matchesMin = minPrice == null || price >= minPrice
+                val matchesMax = maxPrice == null || price <= maxPrice
+                matchesMin && matchesMax
+            }
+        }
+        
+        adapter.updateItems(filtered)
+    }
+
+    private fun scheduleBookingStatusWorker() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val work = PeriodicWorkRequestBuilder<AutoBookingStatusWorker>(15, TimeUnit.MINUTES)
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "auto-booking-status",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            work
+        )
+    }
+    
+    private fun scheduleWeatherNotificationWorker() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        // Run once per day (24 hours) to check tomorrow's weather
+        val work = PeriodicWorkRequestBuilder<WeatherNotificationWorker>(24, TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "weather-notification",
+            ExistingPeriodicWorkPolicy.UPDATE,
+            work
+        )
+    }
 
     private fun toggleFilters() {
         isFiltersVisible = !isFiltersVisible
@@ -253,21 +339,18 @@ class HomeActivity : AppCompatActivity() {
     private fun showLocationFilterDialog() {
         val locations = arrayOf(
             "All Locations",
-            "DHA Phase 5, Lahore",
-            "Johar Town, Lahore",
-            "Gulberg, Lahore",
-            "Model Town, Lahore",
-            "Faisalabad",
-            "Karachi",
-            "Islamabad"
+            "Islamabad",
+            "Lahore",
+            "Karachi"
         )
 
         AlertDialog.Builder(this)
             .setTitle("Select Location")
             .setItems(locations) { _, which ->
-                tvLocationFilter.text = locations[which]
-                // TODO: Apply location filter to grounds list
-                Toast.makeText(this, "Filtered by: ${locations[which]}", Toast.LENGTH_SHORT).show()
+                val selected = locations[which]
+                tvLocationFilter.text = selected
+                selectedLocation = if (selected == "All Locations") null else selected
+                applyFilters()
             }
             .show()
     }
@@ -285,9 +368,20 @@ class HomeActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("Select Price Range")
             .setItems(prices) { _, which ->
-                tvPriceFilter.text = prices[which]
-                // TODO: Apply price filter to grounds list
-                Toast.makeText(this, "Filtered by: ${prices[which]}", Toast.LENGTH_SHORT).show()
+                val selected = prices[which]
+                tvPriceFilter.text = selected
+                
+                // Parse price range
+                selectedPriceRange = when (which) {
+                    0 -> null // All Prices
+                    1 -> Pair(null, 1999.0) // Under Rs. 2000/hr
+                    2 -> Pair(2000.0, 3000.0) // Rs. 2000 - 3000/hr
+                    3 -> Pair(3000.0, 4000.0) // Rs. 3000 - 4000/hr
+                    4 -> Pair(4000.0, 5000.0) // Rs. 4000 - 5000/hr
+                    5 -> Pair(5000.0, null) // Above Rs. 5000/hr
+                    else -> null
+                }
+                applyFilters()
             }
             .show()
     }
@@ -334,22 +428,23 @@ class HomeActivity : AppCompatActivity() {
         // Favorites
         findViewById<View>(R.id.menuFavorites)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            // TODO: Navigate to Favorites screen
-            Toast.makeText(this, "Favorites", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, UserProfileActivity::class.java)
+            intent.putExtra("selected_tab", "favorites")
+            startActivity(intent)
         }
 
         // Settings
         findViewById<View>(R.id.menuSettings)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            // TODO: Navigate to Settings screen
-            Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, UserProfileActivity::class.java)
+            intent.putExtra("selected_tab", "settings")
+            startActivity(intent)
         }
 
         // Help & Support
         findViewById<View>(R.id.menuHelp)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            // TODO: Navigate to Help & Support screen
-            Toast.makeText(this, "Help & Support", Toast.LENGTH_SHORT).show()
+            showHelpSupportDialog()
         }
 
         // Logout
@@ -364,13 +459,27 @@ class HomeActivity : AppCompatActivity() {
             .setTitle("Logout")
             .setMessage("Are you sure you want to logout?")
             .setPositiveButton("Logout") { _, _ ->
-                // TODO: Clear user session/data
-                val intent = Intent(this, AuthActivity::class.java)
+                // Clear login state and Firebase session
+                com.example.smd_fyp.auth.LoginStateManager.clearLoginState(this)
+                com.example.smd_fyp.firebase.FirebaseAuthHelper.signOut()
+                
+                val intent = Intent(this, com.example.smd_fyp.auth.AuthActivity::class.java)
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 startActivity(intent)
                 finish()
             }
             .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showHelpSupportDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Help & Support")
+            .setMessage("For assistance, please contact us:\n\n" +
+                    "Email: support@skeetskeet.com\n" +
+                    "Phone: +92 300 1234567\n\n" +
+                    "Our support team is available 24/7 to help you.")
+            .setPositiveButton("OK", null)
             .show()
     }
 

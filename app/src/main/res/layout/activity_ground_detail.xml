@@ -190,6 +190,20 @@
                     </LinearLayout>
                 </LinearLayout>
 
+                <!-- Condition Badge -->
+                <TextView
+                    android:id="@+id/tvCondition"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Condition: Good"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_rating_badge"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone" />
+
                 <!-- Description -->
                 <TextView
                     android:layout_width="wrap_content"

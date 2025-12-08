@@ -19,5 +19,6 @@ data class GroundApi(
     val hasParking: Boolean = true,
     val description: String? = null,
     val available: Boolean = true,
+    val manualCondition: String? = null, // Manual condition override: "EXCELLENT", "GOOD", "MODERATE", "POOR", or null for auto
     val synced: Boolean = false // For offline sync
 )

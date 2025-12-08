@@ -14,7 +14,7 @@ import com.example.smd_fyp.model.User
 
 @Database(
     entities = [Booking::class, GroundApi::class, User::class, Review::class, Notification::class, Favorite::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

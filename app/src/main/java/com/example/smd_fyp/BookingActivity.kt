@@ -24,8 +24,10 @@ import com.example.smd_fyp.model.Notification
 import com.example.smd_fyp.model.NotificationType
 import com.example.smd_fyp.model.PaymentStatus
 import com.example.smd_fyp.sync.SyncManager
+import com.example.smd_fyp.utils.BookingConflictChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -113,9 +115,7 @@ class BookingActivity : AppCompatActivity() {
 
         // Setup confirm booking button
         btnConfirmBooking.setOnClickListener {
-            if (validateBooking()) {
                 createBooking()
-            }
         }
 
         // Setup back button
@@ -291,10 +291,12 @@ class BookingActivity : AppCompatActivity() {
         return (code in 51..67) || (code in 80..82)
     }
 
-    private fun validateBooking(): Boolean {
+    private suspend fun validateBooking(): Boolean {
         val currentUser = FirebaseAuthHelper.getCurrentUser()
         if (currentUser == null) {
-            Toast.makeText(this, "Please login to book", Toast.LENGTH_SHORT).show()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@BookingActivity, "Please login to book", Toast.LENGTH_SHORT).show()
+            }
             return false
         }
 
@@ -306,8 +308,45 @@ class BookingActivity : AppCompatActivity() {
         }
 
         if (bookingDateTime.before(Calendar.getInstance())) {
-            Toast.makeText(this, "Please select a future date and time", Toast.LENGTH_SHORT).show()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@BookingActivity, "Please select a future date and time", Toast.LENGTH_SHORT).show()
+            }
             return false
+        }
+
+        // Check for booking conflicts
+        val currentGround = ground
+        if (currentGround != null) {
+            val allBookings = withContext(Dispatchers.IO) {
+                LocalDatabaseHelper.getAllBookingsSync()
+            }
+            val groundBookings = allBookings.filter { it.groundId == currentGround.id }
+            
+            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(selectedDate.time)
+            val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(selectedTime.time)
+            
+            val newBooking = Booking(
+                id = "",
+                userId = currentUser.uid,
+                groundId = currentGround.id,
+                groundName = currentGround.name,
+                date = dateStr,
+                time = timeStr,
+                duration = selectedDuration,
+                totalPrice = 0.0,
+                status = BookingStatus.PENDING
+            )
+            
+            if (BookingConflictChecker.hasConflict(newBooking, groundBookings)) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(
+                        this@BookingActivity,
+                        "This time slot is already booked. Please select another time.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                return false
+            }
         }
 
         return true
@@ -328,6 +367,13 @@ class BookingActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
+                // Validate booking (including conflict check)
+                if (!validateBooking()) {
+                    btnConfirmBooking.isEnabled = true
+                    btnConfirmBooking.text = "Confirm Booking"
+                    return@launch
+                }
+                
                 btnConfirmBooking.isEnabled = false
                 btnConfirmBooking.text = "Processing..."
 

@@ -58,6 +58,23 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
+        <!-- Condition Badge (Overlaid on Image, Bottom Left) -->
+        <TextView
+            android:id="@+id/tvCondition"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Good"
+            android:textColor="@android:color/white"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/ivGroundImage"
+            app:layout_constraintStart_toStartOf="@id/ivGroundImage" />
+
         <!-- Content Below Image -->
         <LinearLayout
             android:id="@+id/llContent"

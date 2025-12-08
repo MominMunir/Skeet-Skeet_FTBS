@@ -11,8 +11,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import androidx.fragment.app.Fragment
@@ -38,6 +40,7 @@ class GroundkeeperEditGroundFragment : Fragment() {
     private lateinit var etDescription: TextInputEditText
     private lateinit var switchFloodlights: SwitchCompat
     private lateinit var switchParking: SwitchCompat
+    private lateinit var spCondition: Spinner
     private lateinit var ivImagePreview: ImageView
     private lateinit var ivImagePlaceholder: ImageView
     private lateinit var tvImagePlaceholder: TextView
@@ -107,7 +110,13 @@ class GroundkeeperEditGroundFragment : Fragment() {
         etDescription = view.findViewById(R.id.etDescription)
         switchFloodlights = view.findViewById(R.id.switchFloodlights)
         switchParking = view.findViewById(R.id.switchParking)
+        spCondition = view.findViewById(R.id.spCondition)
         ivImagePreview = view.findViewById(R.id.ivImagePreview)
+        
+        // Setup condition spinner
+        val conditionOptions = listOf("Auto (Based on Weather)", "Excellent", "Good", "Moderate", "Poor")
+        val conditionAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, conditionOptions)
+        spCondition.adapter = conditionAdapter
         ivImagePlaceholder = view.findViewById(R.id.ivImagePlaceholder)
         tvImagePlaceholder = view.findViewById(R.id.tvImagePlaceholder)
 
@@ -176,6 +185,17 @@ class GroundkeeperEditGroundFragment : Fragment() {
             etDescription.setText(ground.description ?: "")
             switchFloodlights.isChecked = ground.hasFloodlights
             switchParking.isChecked = ground.hasParking
+            
+            // Set condition spinner
+            val conditionOptions = listOf("Auto (Based on Weather)", "Excellent", "Good", "Moderate", "Poor")
+            val conditionIndex = when (ground.manualCondition) {
+                "EXCELLENT" -> 1
+                "GOOD" -> 2
+                "MODERATE" -> 3
+                "POOR" -> 4
+                else -> 0 // Auto
+            }
+            spCondition.setSelection(conditionIndex)
 
             // Load image if exists
             if (!ground.imageUrl.isNullOrEmpty()) {
@@ -282,6 +302,16 @@ class GroundkeeperEditGroundFragment : Fragment() {
         val description = etDescription.text?.toString()?.trim() ?: ""
         val hasFloodlights = switchFloodlights.isChecked
         val hasParking = switchParking.isChecked
+        
+        // Get selected condition
+        val selectedConditionIndex = spCondition.selectedItemPosition
+        val manualCondition = when (selectedConditionIndex) {
+            1 -> "EXCELLENT"
+            2 -> "GOOD"
+            3 -> "MODERATE"
+            4 -> "POOR"
+            else -> null // Auto
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -332,6 +362,7 @@ class GroundkeeperEditGroundFragment : Fragment() {
                     hasFloodlights = hasFloodlights,
                     hasParking = hasParking,
                     description = if (description.isNotEmpty()) description else null,
+                    manualCondition = manualCondition,
                     synced = false
                 )
 

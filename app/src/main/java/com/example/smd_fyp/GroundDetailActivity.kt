@@ -14,19 +14,23 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.example.smd_fyp.api.OpenMeteoService
 import com.example.smd_fyp.database.LocalDatabaseHelper
 import com.example.smd_fyp.firebase.FirebaseAuthHelper
 import com.example.smd_fyp.model.Favorite
 import com.example.smd_fyp.model.GroundApi
+import com.example.smd_fyp.utils.GroundConditionHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 class GroundDetailActivity : AppCompatActivity() {
 
     private lateinit var ground: GroundApi
     private lateinit var btnFavorite: ImageButton
     private var isFavorite: Boolean = false
+    private val weatherService = OpenMeteoService.create()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,6 +99,7 @@ class GroundDetailActivity : AppCompatActivity() {
                 ground = loadedGround
                 displayGroundData()
                 checkFavoriteStatus()
+                loadGroundCondition()
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(this@GroundDetailActivity, "Error loading ground: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -243,6 +248,68 @@ class GroundDetailActivity : AppCompatActivity() {
             }
         } else {
             findViewById<TextView>(R.id.tvAvailability)?.visibility = View.GONE
+        }
+    }
+    
+    private fun loadGroundCondition() {
+        // Check if manual condition is set
+        ground.manualCondition?.let { manualConditionStr ->
+            val manualCondition = when (manualConditionStr) {
+                "EXCELLENT" -> GroundConditionHelper.GroundCondition.EXCELLENT
+                "GOOD" -> GroundConditionHelper.GroundCondition.GOOD
+                "MODERATE" -> GroundConditionHelper.GroundCondition.MODERATE
+                "POOR" -> GroundConditionHelper.GroundCondition.POOR
+                else -> null
+            }
+            if (manualCondition != null) {
+                displayCondition(manualCondition)
+                return
+            }
+        }
+        
+        val coords = getCityCoordinates(ground.location ?: "")
+        if (coords == null) {
+            findViewById<TextView>(R.id.tvCondition)?.visibility = View.GONE
+            return
+        }
+        
+        lifecycleScope.launch {
+            try {
+                val forecast = withContext(Dispatchers.IO) {
+                    weatherService.getDailyForecast(coords.first, coords.second, forecastDays = 1)
+                }
+                val condition = GroundConditionHelper.calculateCondition(forecast)
+                displayCondition(condition)
+            } catch (e: Exception) {
+                android.util.Log.e("GroundDetailActivity", "Error loading condition", e)
+                findViewById<TextView>(R.id.tvCondition)?.visibility = View.GONE
+            }
+        }
+    }
+    
+    private fun displayCondition(condition: GroundConditionHelper.GroundCondition) {
+        val tvCondition = findViewById<TextView>(R.id.tvCondition) ?: return
+        tvCondition.text = "Condition: ${GroundConditionHelper.getConditionText(condition)}"
+        
+        // Set background color based on condition
+        val backgroundColorRes = when (condition) {
+            GroundConditionHelper.GroundCondition.EXCELLENT -> android.R.color.holo_green_dark
+            GroundConditionHelper.GroundCondition.GOOD -> android.R.color.holo_green_light
+            GroundConditionHelper.GroundCondition.MODERATE -> android.R.color.holo_orange_light
+            GroundConditionHelper.GroundCondition.POOR -> android.R.color.holo_red_dark
+        }
+        tvCondition.setBackgroundColor(getColor(backgroundColorRes))
+        tvCondition.setTextColor(getColor(android.R.color.white))
+        tvCondition.visibility = View.VISIBLE
+    }
+    
+    private fun getCityCoordinates(city: String): Pair<Double, Double>? {
+        val normalized = city.lowercase(Locale.getDefault())
+        return when {
+            normalized.contains("islamabad") -> Pair(33.7215, 73.0433)
+            normalized.contains("lahore") -> Pair(31.558, 74.3507)
+            normalized.contains("karachi") -> Pair(24.8608, 67.0104)
+            else -> null
         }
     }
 }

@@ -67,6 +67,10 @@ object SyncManager {
             // Sync grounds from local SQLite
             val unsyncedGrounds = LocalDatabaseHelper.getUnsyncedGrounds()
             unsyncedGrounds.forEach { ground ->
+                // Check if ground has local image that needs uploading
+                if (ground.imageUrl?.startsWith("local://") == true) {
+                    android.util.Log.d("SyncManager", "Ground ${ground.id} has local image, will upload during sync")
+                }
                 val result = syncGround(context, ground)
                 if (result.isSuccess) {
                     syncedGrounds++
@@ -191,6 +195,7 @@ object SyncManager {
     /**
      * Sync a single ground
      * First saves to local SQLite (works offline), then syncs to PHP API and Firestore when online
+     * Also handles uploading local images when syncing
      */
     suspend fun syncGround(context: Context, ground: GroundApi): Result<GroundApi> = withContext(Dispatchers.IO) {
         return@withContext try {
@@ -202,15 +207,35 @@ object SyncManager {
                 return@withContext Result.success(ground)
             }
             
+            // Check if image is stored locally and needs to be uploaded
+            var updatedGround = ground
+            if (ground.imageUrl?.startsWith("local://") == true) {
+                android.util.Log.d("SyncManager", "Uploading local image for ground: ${ground.id}")
+                val uploadResult = com.example.smd_fyp.api.ImageUploadHelper.uploadLocalImage(
+                    context,
+                    ground.imageUrl
+                )
+                if (uploadResult.isSuccess) {
+                    val uploadedUrl = uploadResult.getOrNull()
+                    updatedGround = ground.copy(imageUrl = uploadedUrl, imagePath = uploadedUrl)
+                    // Update in local database
+                    LocalDatabaseHelper.updateGround(updatedGround)
+                    android.util.Log.d("SyncManager", "Local image uploaded successfully: $uploadedUrl")
+                } else {
+                    android.util.Log.w("SyncManager", "Failed to upload local image: ${uploadResult.exceptionOrNull()?.message}")
+                    // Continue with sync even if image upload fails
+                }
+            }
+            
             // Try PHP API first
             val phpResult = try {
                 val apiService = ApiClient.getPhpApiService(context)
                 
                 // Check if ground exists in PHP by trying to get it
                 var groundExists = false
-                if (ground.id.isNotEmpty()) {
+                if (updatedGround.id.isNotEmpty()) {
                     try {
-                        val existingGroundResponse = apiService.getGround(ground.id)
+                        val existingGroundResponse = apiService.getGround(updatedGround.id)
                         groundExists = existingGroundResponse.isSuccessful && existingGroundResponse.body() != null
                     } catch (e: Exception) {
                         android.util.Log.d("SyncManager", "Could not check if ground exists, will try to create: ${e.message}")
@@ -220,11 +245,11 @@ object SyncManager {
                 
                 // If ground exists in PHP, update it; otherwise create it
                 val response = if (groundExists) {
-                    android.util.Log.d("SyncManager", "Ground exists in PHP, updating: ${ground.id}")
-                    apiService.updateGround(ground)
+                    android.util.Log.d("SyncManager", "Ground exists in PHP, updating: ${updatedGround.id}")
+                    apiService.updateGround(updatedGround)
                 } else {
-                    android.util.Log.d("SyncManager", "Ground doesn't exist in PHP, creating: ${ground.id}")
-                    apiService.createGround(ground)
+                    android.util.Log.d("SyncManager", "Ground doesn't exist in PHP, creating: ${updatedGround.id}")
+                    apiService.createGround(updatedGround)
                 }
                 
                 if (response.isSuccessful && response.body() != null) {
@@ -246,7 +271,7 @@ object SyncManager {
             
             // Also sync to Firestore (optional - don't fail if Firestore is disabled)
             if (phpResult.isSuccess) {
-                val syncedGround = phpResult.getOrNull() ?: ground
+                val syncedGround = phpResult.getOrNull() ?: updatedGround
                 
                 // Try to sync to Firestore, but don't fail if it's disabled
                 try {

@@ -119,6 +119,18 @@
                         android:text="DHA Phase 5, Lahore"
                         android:textColor="@color/text_secondary"
                         android:textSize="16sp" />
+                    
+                    <!-- Map Button -->
+                    <ImageButton
+                        android:id="@+id/btnOpenMap"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@drawable/ic_map"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Open in Google Maps"
+                        app:tint="@color/green_600"
+                        android:padding="8dp"
+                        android:layout_marginStart="8dp" />
                 </LinearLayout>
 
                 <!-- Price and Rating Row -->

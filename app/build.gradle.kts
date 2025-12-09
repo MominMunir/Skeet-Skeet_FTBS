@@ -76,6 +76,9 @@ dependencies {
     // WorkManager for background booking status updates
     implementation(libs.androidx.work.ktx)
     
+    // SwipeRefreshLayout for pull-to-refresh
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

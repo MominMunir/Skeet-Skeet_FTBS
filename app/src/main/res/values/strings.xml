@@ -2,7 +2,7 @@
     <!-- API Configuration -->
     <!-- For Android emulator, use: localhost (will be converted to 10.0.2.2) -->
     <!-- For physical device, use your PC's IP address, e.g., 192.168.1.100 -->
-    <string name="api_ip">192.168.0.192</string>
+    <string name="api_ip">172.15.66.69</string>
     <string name="api_base_url">http://%1$s/skeetskeet/api/</string>
 
     <!-- Splash Screen Strings -->

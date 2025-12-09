@@ -52,6 +52,9 @@ class GroundkeeperDashboardActivity : AppCompatActivity() {
         if (savedInstanceState == null) {
             loadFragment(GroundkeeperOverviewFragment())
         }
+        
+        // Register network callback for auto-sync when connection is restored
+        com.example.smd_fyp.sync.NetworkSyncCallback.register(this, this)
     }
     
     override fun onResume() {

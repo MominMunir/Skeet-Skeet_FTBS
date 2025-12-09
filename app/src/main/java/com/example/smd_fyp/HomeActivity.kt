@@ -144,6 +144,9 @@ class HomeActivity : AppCompatActivity() {
 
         // Setup back button handling
         setupBackPressHandler()
+        
+        // Register network callback for auto-sync when connection is restored
+        com.example.smd_fyp.sync.NetworkSyncCallback.register(this, this)
 
         // TODO: Setup search functionality
         // TODO: Setup other top bar button click listeners
@@ -240,7 +243,11 @@ class HomeActivity : AppCompatActivity() {
             try {
                 // First, observe local database (offline support)
                 LocalDatabaseHelper.getAllGrounds()?.collect { localGrounds: List<GroundApi> ->
-                    allGrounds = localGrounds.filter { it.available }
+                    // Normalize image URLs to use current IP address
+                    allGrounds = ApiClient.normalizeGroundImageUrls(
+                        this@HomeActivity,
+                        localGrounds.filter { it.available }
+                    )
                     applyFilters()
                 }
             } catch (e: Exception) {
@@ -258,9 +265,17 @@ class HomeActivity : AppCompatActivity() {
                     if (response.isSuccessful && response.body() != null) {
                         val apiGrounds = response.body()!!
                         
+                        // Normalize image URLs before saving to database
+                        val normalizedGrounds = ApiClient.normalizeGroundImageUrls(
+                            this@HomeActivity,
+                            apiGrounds
+                        )
+                        
                         // Save to local database
                         withContext(Dispatchers.IO) {
-                            LocalDatabaseHelper.saveGrounds(apiGrounds.map { it.copy(synced = true) })
+                            LocalDatabaseHelper.saveGrounds(normalizedGrounds.map { ground: GroundApi -> 
+                                ground.copy(synced = true) 
+                            })
                         }
                     }
                 } catch (e: Exception) {

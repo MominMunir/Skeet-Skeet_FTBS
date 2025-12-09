@@ -10,10 +10,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.example.smd_fyp.R
+import android.widget.ImageButton
 import com.example.smd_fyp.api.OpenMeteoService
 import com.example.smd_fyp.model.GroundApi
 import com.example.smd_fyp.utils.GroundConditionHelper
 import com.example.smd_fyp.utils.GroundConditionHelper.GroundCondition
+import com.example.smd_fyp.utils.MapHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,6 +47,7 @@ class GroundAdapter(
         val tvAmenity1: TextView = itemView.findViewById(R.id.tvAmenity1)
         val tvAmenity2: TextView = itemView.findViewById(R.id.tvAmenity2)
         val tvCondition: TextView = itemView.findViewById(R.id.tvCondition)
+        val btnMapIcon: ImageButton = itemView.findViewById(R.id.btnMapIcon)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -57,9 +60,15 @@ class GroundAdapter(
         val item = items[position]
         
         // Load image from URL using Glide
-        if (!item.imageUrl.isNullOrEmpty()) {
+        // Normalize image URL to use current IP address
+        val normalizedImageUrl = com.example.smd_fyp.api.ApiClient.normalizeImageUrl(
+            holder.itemView.context,
+            item.imageUrl
+        )
+        
+        if (!normalizedImageUrl.isNullOrEmpty()) {
             Glide.with(holder.itemView.context)
-                .load(item.imageUrl)
+                .load(normalizedImageUrl)
                 .placeholder(R.drawable.mock_ground1) // Fallback image
                 .error(R.drawable.mock_ground1) // Error image
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
@@ -77,6 +86,13 @@ class GroundAdapter(
 
         holder.tvAmenity1.visibility = if (item.hasFloodlights) View.VISIBLE else View.GONE
         holder.tvAmenity2.visibility = if (item.hasParking) View.VISIBLE else View.GONE
+        
+        // Setup map button click listener
+        holder.btnMapIcon.setOnClickListener { view ->
+            // Prevent the card click from firing
+            view.isClickable = true
+            openLocationInMaps(view.context, item)
+        }
         
         // Load and display condition
         loadConditionForGround(holder, item)
@@ -158,6 +174,17 @@ class GroundAdapter(
             normalized.contains("karachi") -> Pair(24.8608, 67.0104)
             else -> null
         }
+    }
+    
+    private fun openLocationInMaps(context: android.content.Context, ground: GroundApi) {
+        val location = ground.location
+        if (location.isNullOrEmpty()) {
+            android.widget.Toast.makeText(context, "Location not available", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Search by place name directly for accurate results
+        MapHelper.openInGoogleMaps(context, location, ground.name)
     }
 
     override fun getItemCount(): Int = items.size

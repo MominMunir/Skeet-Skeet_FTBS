@@ -86,7 +86,12 @@ class FavoritesFragment : Fragment() {
                         groundIds.forEach { groundId ->
                             val ground = LocalDatabaseHelper.getGround(groundId)
                             if (ground != null) {
-                                groundsMap[groundId] = ground
+                                // Normalize image URL to use current IP address
+                                val normalizedGround = ApiClient.normalizeGroundImageUrl(
+                                    requireContext(),
+                                    ground
+                                )
+                                groundsMap[groundId] = normalizedGround
                             }
                         }
                     }

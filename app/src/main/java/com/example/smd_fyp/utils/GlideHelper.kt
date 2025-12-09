@@ -30,6 +30,7 @@ object GlideHelper {
     
     /**
      * Load image with proper error handling and logging
+     * Handles both remote URLs and local image paths (local://...)
      */
     fun loadImage(
         context: Context,
@@ -43,6 +44,12 @@ object GlideHelper {
         if (imageUrl.isNullOrEmpty()) {
             Log.w(tag, "Image URL is null or empty")
             imageView.setImageResource(errorDrawable)
+            return
+        }
+        
+        // Check if it's a local image path
+        if (imageUrl.startsWith("local://")) {
+            loadLocalImage(context, imageUrl, imageView, placeholder, errorDrawable, tag, useCircleCrop)
             return
         }
         
@@ -90,6 +97,63 @@ object GlideHelper {
         } catch (e: Exception) {
             Log.w(tag, "Glide load failed (non-critical): ${e.message}")
             // OkHttp is already handling the image, so this is fine
+        }
+    }
+    
+    /**
+     * Load local image from app's internal storage
+     */
+    private fun loadLocalImage(
+        context: Context,
+        localPath: String,
+        imageView: ImageView,
+        placeholder: Int,
+        errorDrawable: Int,
+        tag: String,
+        useCircleCrop: Boolean
+    ) {
+        try {
+            // Parse local path: "local://grounds/filename.jpg"
+            if (!localPath.startsWith("local://")) {
+                imageView.setImageResource(errorDrawable)
+                return
+            }
+            
+            val pathParts = localPath.removePrefix("local://").split("/")
+            if (pathParts.size != 2) {
+                imageView.setImageResource(errorDrawable)
+                return
+            }
+            
+            val folder = pathParts[0]
+            val fileName = pathParts[1]
+            
+            // Load from local storage
+            val localFile = java.io.File(context.filesDir, "local_images/$folder/$fileName")
+            if (localFile.exists()) {
+                Log.d(tag, "Loading local image: ${localFile.absolutePath}")
+                
+                // Use Glide to load local file
+                val requestBuilder = Glide.with(context)
+                    .load(localFile)
+                    .diskCacheStrategy(DiskCacheStrategy.NONE) // Don't cache local files
+                    .placeholder(placeholder)
+                    .error(errorDrawable)
+                
+                if (useCircleCrop) {
+                    requestBuilder.circleCrop()
+                } else {
+                    requestBuilder.centerCrop()
+                }
+                
+                requestBuilder.into(imageView)
+            } else {
+                Log.w(tag, "Local image file not found: ${localFile.absolutePath}")
+                imageView.setImageResource(errorDrawable)
+            }
+        } catch (e: Exception) {
+            Log.e(tag, "Error loading local image: ${e.message}", e)
+            imageView.setImageResource(errorDrawable)
         }
     }
     

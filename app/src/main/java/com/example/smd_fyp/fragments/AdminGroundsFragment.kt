@@ -61,8 +61,13 @@ class AdminGroundsFragment : Fragment() {
             try {
                 // Observe local database
                 LocalDatabaseHelper.getAllGrounds()?.collect { localGrounds ->
-                    groundAdapter.updateItems(localGrounds)
-                    tvGroundCount.text = "${localGrounds.size} grounds"
+                    // Normalize image URLs to use current IP address
+                    val normalizedGrounds = ApiClient.normalizeGroundImageUrls(
+                        requireContext(),
+                        localGrounds
+                    )
+                    groundAdapter.updateItems(normalizedGrounds)
+                    tvGroundCount.text = "${normalizedGrounds.size} grounds"
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -79,9 +84,17 @@ class AdminGroundsFragment : Fragment() {
                     if (response.isSuccessful && response.body() != null) {
                         val apiGrounds = response.body()!!
                         
+                        // Normalize image URLs before saving to database
+                        val normalizedGrounds = ApiClient.normalizeGroundImageUrls(
+                            requireContext(),
+                            apiGrounds
+                        )
+                        
                         // Save to local database
                         withContext(Dispatchers.IO) {
-                            LocalDatabaseHelper.saveGrounds(apiGrounds.map { it.copy(synced = true) })
+                            LocalDatabaseHelper.saveGrounds(normalizedGrounds.map { ground: GroundApi -> 
+                                ground.copy(synced = true) 
+                            })
                         }
                     }
                 } catch (e: Exception) {

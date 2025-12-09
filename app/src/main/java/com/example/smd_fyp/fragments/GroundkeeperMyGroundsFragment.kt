@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.smd_fyp.R
 import com.example.smd_fyp.api.ApiClient
 import com.example.smd_fyp.database.LocalDatabaseHelper
@@ -27,6 +28,7 @@ class GroundkeeperMyGroundsFragment : Fragment() {
     private lateinit var rvMyGrounds: RecyclerView
     private lateinit var llEmptyState: LinearLayout
     private lateinit var groundAdapter: GroundkeeperGroundAdapter
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -43,8 +45,14 @@ class GroundkeeperMyGroundsFragment : Fragment() {
         LocalDatabaseHelper.initialize(requireContext())
         
         // Initialize views
+        swipeRefreshLayout = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefreshLayout)
         rvMyGrounds = view.findViewById(R.id.rvMyGrounds)
         llEmptyState = view.findViewById(R.id.llEmptyState)
+        
+        // Setup SwipeRefreshLayout
+        swipeRefreshLayout.setOnRefreshListener {
+            refreshData()
+        }
         
         // Setup RecyclerView
         rvMyGrounds.layoutManager = LinearLayoutManager(requireContext())
@@ -87,6 +95,64 @@ class GroundkeeperMyGroundsFragment : Fragment() {
         loadMyGrounds()
     }
     
+    private fun refreshData() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // Sync all unsynced data
+                if (SyncManager.isOnline(requireContext())) {
+                    val syncResult = withContext(Dispatchers.IO) {
+                        SyncManager.syncAll(requireContext())
+                    }
+                    
+                    syncResult.fold(
+                        onSuccess = { result ->
+                            android.util.Log.d("GroundkeeperMyGroundsFragment", 
+                                "Sync completed: ${result.syncedBookings} bookings, " +
+                                "${result.syncedGrounds} grounds, ${result.syncedUsers} users")
+                        },
+                        onFailure = { exception ->
+                            android.util.Log.e("GroundkeeperMyGroundsFragment", 
+                                "Sync failed: ${exception.message}", exception)
+                        }
+                    )
+                }
+                
+                // Reload grounds from API
+                val currentUser = FirebaseAuthHelper.getCurrentUser()
+                if (currentUser != null && SyncManager.isOnline(requireContext())) {
+                    try {
+                        val apiService = ApiClient.getPhpApiService(requireContext())
+                        val response = apiService.getGrounds()
+                        
+                        if (response.isSuccessful && response.body() != null) {
+                            val apiGrounds = response.body()!!
+                            
+                            // Normalize image URLs before saving to database
+                            val normalizedGrounds = ApiClient.normalizeGroundImageUrls(
+                                requireContext(),
+                                apiGrounds
+                            )
+                            
+                            // Save to local database
+                            withContext(Dispatchers.IO) {
+                                LocalDatabaseHelper.saveGrounds(normalizedGrounds.map { ground: GroundApi -> 
+                                    ground.copy(synced = true) 
+                                })
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                // Stop refresh animation
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
+    }
+    
     private fun loadMyGrounds() {
         val currentUser = FirebaseAuthHelper.getCurrentUser()
         if (currentUser == null) return
@@ -96,8 +162,13 @@ class GroundkeeperMyGroundsFragment : Fragment() {
                 // Observe local database - filter by groundkeeper's grounds
                 // Note: We need to add a userId field to GroundApi or filter by some criteria
                 LocalDatabaseHelper.getAllGrounds()?.collect { allGrounds ->
+                    // Normalize image URLs to use current IP address
+                    val normalizedGrounds = ApiClient.normalizeGroundImageUrls(
+                        requireContext(),
+                        allGrounds
+                    )
                     // For now, show all grounds. In production, filter by groundkeeper's userId
-                    val myGrounds = allGrounds // TODO: Filter by groundkeeper userId
+                    val myGrounds = normalizedGrounds // TODO: Filter by groundkeeper userId
                     groundAdapter.updateItems(myGrounds)
                     llEmptyState.visibility = if (myGrounds.isEmpty()) View.VISIBLE else View.GONE
                 }
@@ -116,9 +187,17 @@ class GroundkeeperMyGroundsFragment : Fragment() {
                     if (response.isSuccessful && response.body() != null) {
                         val apiGrounds = response.body()!!
                         
+                        // Normalize image URLs before saving to database
+                        val normalizedGrounds = ApiClient.normalizeGroundImageUrls(
+                            requireContext(),
+                            apiGrounds
+                        )
+                        
                         // Save to local database
                         withContext(Dispatchers.IO) {
-                            LocalDatabaseHelper.saveGrounds(apiGrounds.map { it.copy(synced = true) })
+                            LocalDatabaseHelper.saveGrounds(normalizedGrounds.map { ground: GroundApi -> 
+                                ground.copy(synced = true) 
+                            })
                         }
                     }
                 } catch (e: Exception) {

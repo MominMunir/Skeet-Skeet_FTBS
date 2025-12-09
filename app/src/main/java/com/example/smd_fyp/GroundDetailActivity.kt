@@ -14,12 +14,14 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.example.smd_fyp.api.ApiClient
 import com.example.smd_fyp.api.OpenMeteoService
 import com.example.smd_fyp.database.LocalDatabaseHelper
 import com.example.smd_fyp.firebase.FirebaseAuthHelper
 import com.example.smd_fyp.model.Favorite
 import com.example.smd_fyp.model.GroundApi
 import com.example.smd_fyp.utils.GroundConditionHelper
+import com.example.smd_fyp.utils.MapHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -81,6 +83,24 @@ class GroundDetailActivity : AppCompatActivity() {
                 startActivity(intent)
             }
         }
+        
+        // Setup Map button
+        findViewById<View>(R.id.btnOpenMap)?.setOnClickListener {
+            if (::ground.isInitialized) {
+                openLocationInMaps()
+            }
+        }
+    }
+    
+    private fun openLocationInMaps() {
+        val location = ground.location
+        if (location.isNullOrEmpty()) {
+            Toast.makeText(this, "Location not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Search by place name directly for accurate results
+        MapHelper.openInGoogleMaps(this, location, ground.name)
     }
 
     private fun loadGroundData(groundId: String) {
@@ -96,7 +116,8 @@ class GroundDetailActivity : AppCompatActivity() {
                     return@launch
                 }
 
-                ground = loadedGround
+                // Normalize image URL to use current IP address
+                ground = ApiClient.normalizeGroundImageUrl(this@GroundDetailActivity, loadedGround)
                 displayGroundData()
                 checkFavoriteStatus()
                 loadGroundCondition()

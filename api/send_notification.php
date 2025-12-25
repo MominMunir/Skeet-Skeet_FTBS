@@ -10,7 +10,7 @@
  * sendFCMNotification('user_id', 'Title', 'Message', 'BOOKING', 'related_id');
  */
 
-require_once 'con.php';
+require_once 'db_connection.php';
 
 // Get Firebase Server Key from environment or config
 // TODO: Replace with your actual Firebase Server Key from Firebase Console

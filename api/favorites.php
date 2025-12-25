@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once 'con.php';
+require_once 'db_connection.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 

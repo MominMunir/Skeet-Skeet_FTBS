@@ -9,7 +9,7 @@
  * sendFCMNotificationV1('user_id', 'Title', 'Message', 'BOOKING', 'related_id');
  */
 
-require_once 'con.php';
+require_once 'db_connection.php';
 
 // Path to your Service Account JSON file downloaded from Firebase Console
 // Go to: Firebase Console → Project Settings → Service Accounts → Generate new private key

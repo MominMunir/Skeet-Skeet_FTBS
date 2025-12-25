@@ -1,4 +1,4 @@
-# Skeet Skeet - Sports Ground Booking App
+# Skeet Skeet - Football Turf Booking System
 
 A comprehensive Android application for booking sports grounds with offline-first architecture, real-time notifications, and multi-role user management.
 
@@ -292,22 +292,14 @@ See `api/` folder for PHP template files.
 
 ## 📄 License
 
-This project is part of a Final Year Project (FYP) for Software Mobile Development (SMD).
+This project is part of a Semester Project for Software Mobile Development (SMD).
 
 ## 👥 Contributors
 
 - Abdullah Azeem (22I-1186)
-- Talha Khurram (22I-0709)
+- Talha Khurram (22I-0790)
 - Momin Munir (22I-0854)
 
-## 📚 Additional Documentation
-
-For detailed implementation guides, see the `markdown/` directory:
-- `FEATURES_IMPLEMENTATION_SUMMARY.md` - Complete feature list
-- `IMPLEMENTATION_GUIDE.md` - Setup and usage guide
-- `CODE_REVIEW_OFFLINE_SYNC.md` - Offline sync architecture
-- `FIREBASE_SETUP_GUIDE.md` - Firebase configuration
-- `SQLITE_OFFLINE_STORAGE_GUIDE.md` - Local database guide
 
 ## 🎯 Future Enhancements
 
